@@ -1,4 +1,5 @@
 import {makeRegularRound,createPlayoffFixtures} from './ranked-core.js';
+import {newPlacementState,preparePlacementWave,settlePlacementWave} from './ranked-playoff-engine.js';
 // CourtFlow Ranked Four Games v1 - no points-based ranking
 export function initRanked({db,state,load,notify,escapeHTML,playerName}){
  const $=id=>document.getElementById(id);
@@ -38,59 +39,48 @@ export function initRanked({db,state,load,notify,escapeHTML,playerName}){
  msg('Top 4 ranking finalized')}catch(e){msg(e)}}
  const fixturesFor=b=>playoffs().filter(f=>f.bracket_id===b.id);
  async function createDuelFixtures(b,playerIds,round){const skills=Object.fromEntries(state.players.map(p=>[p.id,p.skill]));const volunteers=eligibleSupport(playerIds);const selected=createPlayoffFixtures({players:playerIds,allContenders:b.contenders,volunteers,skills,prior:fixturesFor(b)});const items=selected.map((item,i)=>({...item,session_id:sel(),phase:'playoff',round_no:round,bracket_id:b.id,seq_no:i+1}));await insertFixtures(items)}
- async function advance(){try{let b=cache.brackets.find(x=>x.status==='active');if(!b)throw Error('No active bracket.');let meta=b.meta||{},live=meta.live||b.contenders,round=Number(b.round_no||1),stage=fixturesFor(b).filter(f=>f.round_no===round);
- if(stage.length&&stage.some(f=>!done(f)))throw Error('Finish all playoff matches first.');
- if(stage.length){const survivors=stage.flatMap(f=>contenderWon(f)||[]);if(stage.length===1&&stage[0].kind==='triple'&&b.slots>=3){
- const triple=stage[0],pair=triple.contenders.filter(id=>!triple.team_a.includes(id)||triple.team_a.includes(id));const two=triple.team_a.filter(id=>triple.contenders.includes(id));
- const solo=triple.contenders.find(id=>!two.includes(id));const soloWon=contenderWon(triple).includes(solo);const placementTop=b.rank_start;
- await award(soloWon?placementTop:placementTop+2,solo);
- const duel=drawDuel(two[0],two[1],triple.team_a.concat(triple.team_b));
- await insertFixtures([{...duel,session_id:sel(),phase:'playoff',round_no:round+1,bracket_id:b.id,seq_no:1,kind:'final'}]);
- await patchBracket(b,{round_no:round+1,meta:{...meta,finalTwo:two,soloWon,live:two}});await fetchAll();msg('Final deciding match ready');return}
- if(stage.some(f=>f.kind==='bronze')){
- const final=stage.find(f=>f.kind==='final'),bronze=stage.find(f=>f.kind==='bronze');
- if(!final||!bronze)throw Error('Final and placement fixtures required');
- const fw=contenderWon(final)[0],fl=final.contenders.find(x=>x!==fw),bw=contenderWon(bronze)[0];
- await award(b.rank_start,fw);await award(b.rank_start+1,fl);
- if(b.slots>=3)await award(b.rank_start+2,bw);
- await patchBracket(b,{status:'completed',state:'finished',meta:{...meta,live:[]}});
- await fetchAll();msg('Final and bronze placements completed');return;
+ async function advance(){
+  try{
+   let b=cache.brackets.find(x=>x.status==='active');
+   if(!b)throw Error('No active playoff bracket');
+   const stage=fixturesFor(b).filter(f=>f.round_no===b.round_no);
+   let engine=b.meta?.engine||newPlacementState(b.contenders,b.rank_start,b.slots);
+   if(engine.current){
+    if(!stage.length||stage.some(f=>!done(f)))throw Error('Finish all matches in the current playoff wave');
+    const outcomes=Object.fromEntries(stage.map(f=>[f.id,matches().get(f.match_id)?.winner_team]));
+    const next=settlePlacementWave(engine,stage,outcomes);
+    engine=next.state;
+    // Save the transition before creating the next wave. Repeated clicks only resume.
+    await patchBracket(b,{meta:{...b.meta,engine}});
+    await fetchAll();b=cache.brackets.find(x=>x.id===b.id);
+    for(const item of engine.awards){
+      if(!cache.awards.some(a=>a.placement===item.placement&&a.player_id===item.player_id)){
+        await award(item.placement,item.player_id);
+      }
+    }
+    await fetchAll();b=cache.brackets.find(x=>x.id===b.id);
+    if(next.completed){
+      await patchBracket(b,{status:'completed',state:'finished',meta:{...b.meta,engine}});
+      await fetchAll();msg('Playoff placement complete; continue Top 4 selection');return;
+    }
+   }
+   if(!engine.current){
+    const job=engine.jobs[0];
+    if(!job){await patchBracket(b,{status:'completed',state:'finished',meta:{...b.meta,engine}});await fetchAll();return}
+    const skills=Object.fromEntries(state.players.map(p=>[p.id,p.skill]));
+    const prior=fixturesFor(b);
+    const volunteers=eligibleSupport(job.ids);
+    const next=preparePlacementWave(engine,ids=>createPlayoffFixtures({players:ids,allContenders:b.contenders,volunteers,skills,prior}));
+    if(next.completed){await patchBracket(b,{status:'completed',state:'finished',meta:{...b.meta,engine:next.state}});await fetchAll();return}
+    const round=1+Math.max(0,...prior.map(f=>f.round_no));
+    const items=next.fixtures.map((f,i)=>({...f,session_id:sel(),phase:'playoff',bracket_id:b.id,round_no:round,seq_no:i+1}));
+    // Persist the fixtures first so a refresh won't lose the drawn opponents.
+    await insertFixtures(items);
+    await patchBracket(b,{round_no:round,meta:{...b.meta,engine:next.state}});
+    await fetchAll();msg('No-bye playoff wave ready: '+items.length+' match(es)');
+   }
+  }catch(e){msg(e)}
  }
- if(stage.some(f=>f.kind==='final')){
- const f=stage[0],win=contenderWon(f)[0],lose=f.contenders.find(x=>x!==win);
- const top=meta.soloWon?b.rank_start+1:b.rank_start;await award(top,win);await award(top+1,lose);
- await patchBracket(b,{status:'completed',state:'finished',meta:{...meta,live:[]}});await fetchAll();msg('3-way placement resolved');return}
- const winIds=survivors.filter(id=>stage.some(f=>f.contenders.includes(id)));const losers=stage.flatMap(f=>f.contenders.filter(id=>!contenderWon(f).includes(id)));
- if(winIds.length===2&&losers.length===2&&b.slots>=3){
- const final=drawDuel(winIds[0],winIds[1]);
- const bronze=drawDuel(losers[0],losers[1]);
- await insertFixtures([{...final,session_id:sel(),phase:'playoff',round_no:round+1,bracket_id:b.id,seq_no:1,kind:'final'},
- {...bronze,session_id:sel(),phase:'playoff',round_no:round+1,bracket_id:b.id,seq_no:2,kind:'bronze'}]);
- await patchBracket(b,{round_no:round+1,meta:{...meta,live:winIds,bronze:losers}});
- await fetchAll();msg('Final and 3rd-place match ready');return;
- }
- 
- meta={...meta,live:winIds,losers:[...(meta.losers||[]),...losers]};live=winIds;round++;
- }
- if(live.length===3&&b.slots>=3){const three=rand(live);const support=rand(eligibleSupport(three));if(support.length<1)throw Error('Need an available volunteer support player for triple match');
- const fixture={session_id:sel(),phase:'playoff',round_no:round,bracket_id:b.id,seq_no:1,kind:'triple',team_a:[three[0],three[1]],team_b:[three[2],support[0]],contenders:three};
- await insertFixtures([fixture]);await patchBracket(b,{round_no:round,meta:{...meta,live}});await fetchAll();msg('Quick 3-way tiebreaker created');return}
- if(live.length===2&&b.slots>=2){const pair=drawDuel(live[0],live[1]);await insertFixtures([{...pair,session_id:sel(),phase:'playoff',round_no:round,bracket_id:b.id,seq_no:1,kind:'final'}]);await patchBracket(b,{round_no:round,meta:{...meta,live,soloWon:false}});await fetchAll();return}
- if(live.length===1&&b.slots===1){await award(b.rank_start,live[0]);await patchBracket(b,{status:'completed',state:'finished',meta:{...meta,live:[]}});await fetchAll();msg('Placement finalized');return}
- if(live.length>=4&&live.length%2===0){await createDuelFixtures(b,live,round);await patchBracket(b,{round_no:round,meta:{...meta,live}});await fetchAll();msg('Playoff round prepared');return}
- if(live.length===7&&b.slots===3){
- const group=rand(live),trio=group.slice(0,3),remaining=group.slice(3),support=rand(eligibleSupport(group));
- if(!support.length)throw Error('Need at least one volunteer support player');
- const t={session_id:sel(),phase:'playoff',round_no:round,bracket_id:b.id,seq_no:1,kind:'triple',team_a:[trio[0],trio[1]],team_b:[trio[2],support[0]],contenders:trio};
- const d1=drawDuel(remaining[0],remaining[1],t.team_a.concat(t.team_b)),d2=drawDuel(remaining[2],remaining[3],t.team_a.concat(t.team_b).concat(d1.team_a,d1.team_b));
- await insertFixtures([t,{...d1,session_id:sel(),phase:'playoff',round_no:round,bracket_id:b.id,seq_no:2,kind:'duel'},{...d2,session_id:sel(),phase:'playoff',round_no:round,bracket_id:b.id,seq_no:3,kind:'duel'}]);
- await patchBracket(b,{round_no:round,meta:{...meta,live}});
- await fetchAll();msg('Seven-way no-bye qualification ready (3 matches)');return;
- }
- if(live.length>=5&&live.length%2===1){throw Error('Odd contender count '+live.length+': this bracket requires an additional fairness format; no automatic byes were assigned.');}
- if(live.length<b.slots){throw Error('Remaining bracket needs consolation placement games; no auto rank was assigned.');}
- throw Error('This playoff stage requires organizer review. No byes or placements have been assigned.');
- }catch(e){msg(e)}}
  function render(){
  const sid=sel(),s=session();$('rActions').hidden=!s;
  if(!s){$('rSummary').innerHTML='<div class="empty">Choose a Ranked session above.</div>';return}
