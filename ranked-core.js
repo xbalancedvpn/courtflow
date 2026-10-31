@@ -46,7 +46,7 @@ function supportPair(a,b,available,skills,prior,previousSupporters,random=Math.r
   const gap=Math.abs(skill(a,skills)+skill(s1,skills)-skill(b,skills)-skill(s2,skills));
   const repeats=(prior.some(f=>(f.team_a.includes(s1)&&f.team_a.includes(a))||(f.team_b.includes(s1)&&f.team_b.includes(a)))?1:0)
    +(prior.some(f=>(f.team_a.includes(b)&&f.team_a.includes(s2))||(f.team_b.includes(b)&&f.team_b.includes(s2)))?1:0);
-  pairs.push({s1,s2,gap,cost:gap*5+repeats*20+(previousSupporters.has(s1)?500:0)+(previousSupporters.has(s2)?500:0)+random()*.5});
+  pairs.push({s1,s2,gap,cost:gap*100+repeats*0.5+(previousSupporters.has(s1)?0.35:0)+(previousSupporters.has(s2)?0.35:0)+random()*.5});
  }
  pairs.sort((x,y)=>x.cost-y.cost);
  return pairs[0];
@@ -60,12 +60,12 @@ export function createPlayoffFixtures({players,allContenders,volunteers,skills={
  const fresh=available.filter(id=>!previousSupporters.has(id));
  const needed=chosen.length===3?1:chosen.length%2===1?chosen.length-2:chosen.length;
  if(available.length<needed)throw Error('Need '+needed+' non-contender volunteers; '+available.length+' available');
- // A new playoff wave must use an entirely fresh supporter set whenever possible.
- let candidates=fresh.length>=needed?shuffle(fresh,random):[...fresh,...available.filter(id=>previousSupporters.has(id))],fixtures=[];
+ // Balance is primary; previous supporters may return for a fairer placement match.
+ let candidates=[...available],fixtures=[];
  const triple=chosen.length>=3&&chosen.length%2===1;
  if(triple){
   const t=chosen.slice(0,3);
-  const s=candidates.map(id=>({id,cost:Math.abs(skill(t[0],skills)+skill(t[1],skills)-skill(t[2],skills)-skill(id,skills))+(previousSupporters.has(id)?500:0)+random()*.3})).sort((x,y)=>x.cost-y.cost)[0].id;
+  const s=candidates.map(id=>({id,cost:Math.abs(skill(t[0],skills)+skill(t[1],skills)-skill(t[2],skills)-skill(id,skills))*100+(previousSupporters.has(id)?0.35:0)+random()*.3})).sort((x,y)=>x.cost-y.cost)[0].id;
   fixtures.push({kind:'triple',team_a:[t[0],t[1]],team_b:[t[2],s],contenders:t});
   candidates=candidates.filter(id=>id!==s);
  }
