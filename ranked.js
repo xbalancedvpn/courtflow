@@ -47,11 +47,29 @@ export function initRanked({db,state,load,notify,escapeHTML,playerName}){
  const duel=drawDuel(two[0],two[1],triple.team_a.concat(triple.team_b));
  await insertFixtures([{...duel,session_id:sel(),phase:'playoff',round_no:round+1,bracket_id:b.id,seq_no:1,kind:'final'}]);
  await patchBracket(b,{round_no:round+1,meta:{...meta,finalTwo:two,soloWon,live:two}});await fetchAll();msg('Final deciding match ready');return}
+ if(stage.some(f=>f.kind==='bronze')){
+ const final=stage.find(f=>f.kind==='final'),bronze=stage.find(f=>f.kind==='bronze');
+ if(!final||!bronze)throw Error('Final and placement fixtures required');
+ const fw=contenderWon(final)[0],fl=final.contenders.find(x=>x!==fw),bw=contenderWon(bronze)[0];
+ await award(b.rank_start,fw);await award(b.rank_start+1,fl);
+ if(b.slots>=3)await award(b.rank_start+2,bw);
+ await patchBracket(b,{status:'completed',state:'finished',meta:{...meta,live:[]}});
+ await fetchAll();msg('Final and bronze placements completed');return;
+ }
  if(stage.some(f=>f.kind==='final')){
  const f=stage[0],win=contenderWon(f)[0],lose=f.contenders.find(x=>x!==win);
  const top=meta.soloWon?b.rank_start+1:b.rank_start;await award(top,win);await award(top+1,lose);
  await patchBracket(b,{status:'completed',state:'finished',meta:{...meta,live:[]}});await fetchAll();msg('3-way placement resolved');return}
  const winIds=survivors.filter(id=>stage.some(f=>f.contenders.includes(id)));const losers=stage.flatMap(f=>f.contenders.filter(id=>!contenderWon(f).includes(id)));
+ if(winIds.length===2&&losers.length===2&&b.slots>=3){
+ const final=drawDuel(winIds[0],winIds[1]);
+ const bronze=drawDuel(losers[0],losers[1]);
+ await insertFixtures([{...final,session_id:sel(),phase:'playoff',round_no:round+1,bracket_id:b.id,seq_no:1,kind:'final'},
+ {...bronze,session_id:sel(),phase:'playoff',round_no:round+1,bracket_id:b.id,seq_no:2,kind:'bronze'}]);
+ await patchBracket(b,{round_no:round+1,meta:{...meta,live:winIds,bronze:losers}});
+ await fetchAll();msg('Final and 3rd-place match ready');return;
+ }
+ 
  meta={...meta,live:winIds,losers:[...(meta.losers||[]),...losers]};live=winIds;round++;
  }
  if(live.length===3&&b.slots>=3){const three=rand(live);const support=rand(eligibleSupport(three));if(support.length<1)throw Error('Need an available volunteer support player for triple match');
