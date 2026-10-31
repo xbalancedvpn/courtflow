@@ -50,6 +50,7 @@ import {createClient} from 'https://esm.sh/@supabase/supabase-js@2';
 import {initRanked} from './ranked.js';
 import {initStage5} from './stage5.js';
 import {initCourtBoard} from './court-board.js';
+import {initTournamentCenter} from './tournament-center.js';
 const db=createClient('https://okragfzmoirqvkqldcbf.supabase.co','sb_publishable_aPLxA3R26OgZgwo56L6nNw_nZ3L8ZGD');
 const $=x=>document.getElementById(x);
 const cfSkillLabels=['','Beginner','Novice','Intermediate Low','Intermediate High','Advance','Pro'];const cfSkillName=n=>cfSkillLabels[Number(n)]||'Not rated'; const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -57,9 +58,10 @@ let state={players:[],sessions:[],attendance:[],matches:[],matchplayers:[],admin
 let rankedApp=null;
 let stage5=null;
 let courtBoard=null;
+let tournamentCenter=null;
 function msg(s){$('message').textContent=s;setTimeout(()=>$('message').textContent='',6500)}
 async function query(table){const {data,error}=await db.from('cf_'+table).select('*');if(error)throw error;return data||[]}
-async function load(){try{const [players,sessions,attendance,matches,matchplayers]=await Promise.all(['players','sessions','attendance','matches','match_players'].map(query));Object.assign(state,{players,sessions,attendance,matches,matchplayers});render();if(rankedApp)await rankedApp.sync();if(stage5)await stage5.sync();if(courtBoard)await courtBoard.sync()}catch(e){msg('Data load: '+e.message)}}
+async function load(){try{const [players,sessions,attendance,matches,matchplayers]=await Promise.all(['players','sessions','attendance','matches','match_players'].map(query));Object.assign(state,{players,sessions,attendance,matches,matchplayers});render();if(rankedApp)await rankedApp.sync();if(stage5)await stage5.sync();if(courtBoard)await courtBoard.sync();if(tournamentCenter)tournamentCenter.sync(stage5?.getTournamentData())}catch(e){msg('Data load: '+e.message)}}
 function findPlayer(id){return state.players.find(p=>p.id===id)?.name||'Unknown player'}
 function render(){const s=state;$('sessionsList').innerHTML=s.sessions.length?s.sessions.slice().reverse().map(x=>{const ms=s.matches.filter(m=>m.session_id===x.id);return '<div class="card"><div class="flex"><strong>'+esc(x.title)+'</strong><span class="pill">'+esc(x.status)+'</span></div><p class="hint small">'+esc(x.session_date)+' · '+x.courts+' court(s) · '+esc(x.mode)+'</p>'+ms.map(m=>matchCard(m)).join('')+'</div>'}).join(''):'<div class="empty">No sessions yet. Organizers can create one from Admin.</div>';
 $('playersList').innerHTML=s.players.length?s.players.map(p=>{const pm=s.matchplayers.filter(mp=>mp.player_id===p.id);const completed=pm.filter(mp=>s.matches.some(m=>m.id===mp.match_id&&m.status==='completed'));const wins=completed.filter(mp=>s.matches.find(m=>m.id===mp.match_id)?.winner_team===mp.team).length;return '<div class="card"><div class="flex"><strong>'+esc(p.name)+'</strong><span class="pill">'+esc(cfSkillName(p.skill))+'</span></div><p class="hint small">'+completed.length+' games · '+wins+' wins · '+(completed.length-wins)+' losses</p></div>'}).join(''):'<div class="empty">No players registered.</div>';
@@ -140,5 +142,6 @@ const cfChannel=db.channel('courtflow-public').on('postgres_changes',{event:'*',
 rankedApp=initRanked({db,state,load,notify:msg,escapeHTML:esc,playerName:findPlayer});
 stage5=initStage5({db,state,load,notify:msg,escapeHTML:esc,playerName:findPlayer});
 courtBoard=initCourtBoard({db,state,load,notify:msg,escapeHTML:esc,playerName:findPlayer,rankedApp});
+tournamentCenter=initTournamentCenter({state,escapeHTML:esc,playerName:findPlayer,rankedApp,stage5,courtBoard});
 route();await auth();await load();setInterval(load,20000);
 </script></body></html>
