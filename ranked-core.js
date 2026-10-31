@@ -38,7 +38,7 @@ export function makeRegularRound(players,previous=[],random=Math.random){
  return {matches:best,repeatPenalty:bestPenalty};
 }
 function skill(id,skills){const n=Number(skills[id]||3);return Number.isFinite(n)?n:3}
-function supportPair(a,b,available,skills,prior,random=Math.random){
+function supportPair(a,b,available,skills,prior,previousSupporters,random=Math.random){
  if(available.length<2)throw Error('Two available non-contender supporters required');
  const pairs=[];
  for(let i=0;i<available.length;i++)for(let j=0;j<available.length;j++)if(i!==j){
@@ -46,7 +46,7 @@ function supportPair(a,b,available,skills,prior,random=Math.random){
   const gap=Math.abs(skill(a,skills)+skill(s1,skills)-skill(b,skills)-skill(s2,skills));
   const repeats=(prior.some(f=>(f.team_a.includes(s1)&&f.team_a.includes(a))||(f.team_b.includes(s1)&&f.team_b.includes(a)))?1:0)
    +(prior.some(f=>(f.team_a.includes(b)&&f.team_a.includes(s2))||(f.team_b.includes(b)&&f.team_b.includes(s2)))?1:0);
-  pairs.push({s1,s2,gap,cost:gap*5+repeats*20+random()*.5});
+  pairs.push({s1,s2,gap,cost:gap*5+repeats*20+(previousSupporters.has(s1)?500:0)+(previousSupporters.has(s2)?500:0)+random()*.5});
  }
  pairs.sort((x,y)=>x.cost-y.cost);
  return pairs[0];
@@ -56,19 +56,22 @@ export function createPlayoffFixtures({players,allContenders,volunteers,skills={
  if(!chosen.length||new Set(chosen).size!==chosen.length)throw Error('Invalid contender group');
  const contenderSet=new Set(allContenders);
  const available=shuffle([...new Set(volunteers)].filter(id=>!contenderSet.has(id)),random);
+ const previousSupporters=new Set(prior.flatMap(f=>f.team_a.concat(f.team_b).filter(id=>!contenderSet.has(id))));
+ const fresh=available.filter(id=>!previousSupporters.has(id));
  const needed=chosen.length===3?1:chosen.length%2===1?chosen.length-2:chosen.length;
  if(available.length<needed)throw Error('Need '+needed+' non-contender volunteers; '+available.length+' available');
- let candidates=[...available],fixtures=[];
+ // A new playoff wave must use an entirely fresh supporter set whenever possible.
+ let candidates=fresh.length>=needed?shuffle(fresh,random):[...fresh,...available.filter(id=>previousSupporters.has(id))],fixtures=[];
  const triple=chosen.length>=3&&chosen.length%2===1;
  if(triple){
   const t=chosen.slice(0,3);
-  const s=candidates.map(id=>({id,cost:Math.abs(skill(t[0],skills)+skill(t[1],skills)-skill(t[2],skills)-skill(id,skills))+random()*.3})).sort((x,y)=>x.cost-y.cost)[0].id;
+  const s=candidates.map(id=>({id,cost:Math.abs(skill(t[0],skills)+skill(t[1],skills)-skill(t[2],skills)-skill(id,skills))+(previousSupporters.has(id)?500:0)+random()*.3})).sort((x,y)=>x.cost-y.cost)[0].id;
   fixtures.push({kind:'triple',team_a:[t[0],t[1]],team_b:[t[2],s],contenders:t});
   candidates=candidates.filter(id=>id!==s);
  }
  for(let i=triple?3:0;i<chosen.length;i+=2){
   const a=chosen[i],b=chosen[i+1];
-  const selected=supportPair(a,b,candidates,skills,prior.concat(fixtures),random);
+  const selected=supportPair(a,b,candidates,skills,prior.concat(fixtures),previousSupporters,random);
   fixtures.push({kind:kind==='final'?'final':'duel',team_a:[a,selected.s1],team_b:[b,selected.s2],contenders:[a,b]});
   candidates=candidates.filter(id=>id!==selected.s1&&id!==selected.s2);
  }
