@@ -69,5 +69,5 @@ export function initStage5({db,state,load,notify,escapeHTML,playerName}){
    renderPlayers();renderCheckin();renderPublic();
   }catch(e){err(e)}finally{syncing=false}
  }
- renderPublic();return {sync,renderPublic};
+ renderPublic();return {sync,renderPublic,getTournamentData:()=>({fixtures:view.fixtures||[],roster:view.roster||[],awards:view.awards||[]})};
 }
