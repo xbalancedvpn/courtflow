@@ -1,9 +1,38 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0a0d13"><title>CourtFlow — Smart Open Play</title><style>
 :root{font-family:Inter,system-ui,Arial,sans-serif;color:#f7f8f9;background:#0a0d13}*{box-sizing:border-box}body{margin:0}button,input,select{font:inherit}button{cursor:pointer;border:0;background:#f3c925;color:#151515;font-weight:750;padding:11px 15px;border-radius:10px}button.secondary{background:#252c39;color:#f7f8f9}button:disabled{opacity:.4}input,select{width:100%;padding:11px 12px;color:#fff;background:#171d29;border:1px solid #39404f;border-radius:10px;margin:5px 0 10px}header{display:flex;align-items:center;justify-content:space-between;padding:14px max(18px,calc((100vw - 1150px)/2));border-bottom:1px solid #31353d;background:#10141d;position:sticky;top:0;z-index:4}.brand{display:flex;align-items:center;gap:10px;font-weight:950;font-size:20px;letter-spacing:-.7px}.mark{background:#f3c925;border-radius:12px;padding:9px;color:#171819;font-weight:1000}.gold{color:#f3c925}main{max-width:1100px;margin:auto;padding:22px 16px 100px}nav{display:flex;gap:6px;overflow:auto;padding:15px 0}.tab{background:#19202d;color:#cbd0d6;white-space:nowrap}.tab.on{background:#f3c925;color:#111}.hero{background:linear-gradient(120deg,#202a3a,#10141d);border:1px solid #36404d;border-radius:20px;padding:28px;margin:16px 0}h1{font-size:clamp(28px,6vw,46px);letter-spacing:-1.5px;margin:5px 0}h2{font-size:21px;margin:10px 0 16px}.hint{color:#aeb7c5}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(245px,1fr));gap:14px}.card{padding:17px;background:#161c28;border:1px solid #343c4a;border-radius:16px;margin-bottom:12px}.flex{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}.pill{background:#2c3643;padding:5px 10px;border-radius:99px;color:#f3c925;font-size:12px}.score{font-size:23px;font-weight:900}.stack{display:flex;gap:8px;flex-wrap:wrap}.stack>*{flex:1 1 130px}.empty{border:1px dashed #566072;border-radius:13px;color:#9faabd;padding:22px;text-align:center}.small{font-size:12px}.error{color:#ff9999}#message{min-height:23px;color:#f3c925;margin:8px 0}.adminbox{border:1px solid #b38d16}a{color:#f3c925}label{display:block;color:#c9d0df;font-size:13px}section[hidden]{display:none!important}@media(max-width:500px){header{padding:12px 14px}.brand{font-size:17px}main{padding:14px 12px 70px}.hero{padding:20px}button{padding:10px 12px}}
+/* CourtFlow premium responsive sticky navigation */
+:root{--cf-yellow:#f3c925}
+body{scroll-padding-top:150px}
+header.site-header{position:sticky;top:0;z-index:50;padding:0;background:#0f141e;border-bottom:1px solid #303847;box-shadow:0 5px 18px #0004}
+.header-shell{max-width:1150px;margin:0 auto;padding:10px 16px;display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:14px}
+.brand{min-width:0;white-space:nowrap;font-size:18px;gap:8px;cursor:pointer}
+.brand-icon{width:44px;height:44px;object-fit:cover;border-radius:11px;border:1px solid #a88a18;flex-shrink:0}
+.brand-label{display:inline-flex;gap:5px}
+.nav-tabs{display:flex;align-items:center;justify-content:center;gap:4px;min-width:0;padding:0}
+.nav-tabs .tab{display:flex;align-items:center;justify-content:center;gap:6px;position:relative;border-radius:10px 10px 0 0;background:transparent;color:#aeb8c8;padding:11px 12px;min-width:0;white-space:nowrap;font-size:13px;font-weight:650}
+.nav-tabs .tab svg{height:17px;width:17px;flex:none;stroke:currentColor;stroke-width:2;fill:none;stroke-linejoin:round;stroke-linecap:round}
+.nav-tabs .tab.on{background:transparent;color:var(--cf-yellow)}
+.nav-tabs .tab.on:after{content:"";position:absolute;bottom:0;left:18%;width:64%;height:3px;border-radius:3px;background:var(--cf-yellow)}
+.admin-btn{display:inline-flex;gap:8px;align-items:center;justify-content:center;white-space:nowrap;padding:10px 12px}
+.admin-btn.is-active{color:var(--cf-yellow);background:#343323}
+.admin-btn svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:2}
+main{padding-top:20px}
+@media(max-width:790px){
+ .header-shell{grid-template-columns:1fr auto;grid-template-rows:auto auto;gap:4px 10px;padding:9px 14px 0}
+ .brand{grid-column:1;grid-row:1;font-size:17px}
+ .brand-icon{width:39px;height:39px}
+ .admin-btn{grid-column:2;grid-row:1;font-size:13px;padding:9px 11px}
+ .nav-tabs{grid-column:1/-1;grid-row:2;width:100%;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;margin:1px 0 0}
+ .nav-tabs .tab{display:flex;flex-direction:column;gap:4px;padding:8px 1px 10px;border-radius:0;font-size:11px}
+ .nav-tabs .tab svg{height:18px;width:18px}
+ main{padding-top:17px}
+}
+@media(max-width:360px){.brand{font-size:15px}.brand-icon{width:34px;height:34px}.admin-btn{font-size:12px}.nav-tabs .tab{font-size:10px}}
+
 </style></head><body>
-<header><div class="brand"><span class="mark">CF</span>COURT<span class="gold">FLOW</span></div><button class="secondary" onclick="go('admin')">⚙ Admin</button></header>
-<main><nav id="tabs"></nav><div id="message"></div>
+<header class="site-header"><div class="header-shell"><div class="brand" onclick="go('home')" role="link" aria-label="CourtFlow Home"><img class="brand-icon" src="assets/courtflow-icon.png" alt="CourtFlow icon"><span class="brand-label">COURT<span class="gold">FLOW</span></span></div><nav id="tabs" class="nav-tabs" aria-label="Main navigation"></nav><button id="adminShortcut" class="secondary admin-btn" onclick="go('admin')" aria-label="Open admin dashboard"><svg viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Z"/><path d="M12 8v4l3 2"/></svg>Admin</button></div></header>
+<main><div id="message"></div>
 <section id="home"><div class="hero"><div class="pill" style="display:inline-block">POWERED BY XBALANCED</div><h1>Every game.<br><span class="gold">A fair rotation.</span></h1><p class="hint">Smart pickleball open play: courts, match history, and player-first fairness.</p><button onclick="go('sessions')">View open plays</button></div><div class="grid"><div class="card"><h2>Live court board</h2><p class="hint">Follow courts and ongoing games as organizers update results.</p><button class="secondary" onclick="go('sessions')">View sessions</button></div><div class="card"><h2>Player history</h2><p class="hint">Wins, losses and teammates linked to every completed match.</p><button class="secondary" onclick="go('players')">Browse players</button></div></div></section>
 <section id="sessions" hidden><h2>Sessions</h2><div id="sessionsList"></div></section>
 <section id="players" hidden><h2>Player directory</h2><div id="playersList"></div></section>
@@ -33,7 +62,7 @@ function opts(items,label){return '<option value="">'+label+'</option>'+items.ma
 function renderAdmin(){if(!state.admin)return;const old=$('aSession').value;$('aSession').innerHTML=opts(state.sessions.filter(x=>x.status==='active'),'Select session');if(state.sessions.some(x=>x.id===old))$('aSession').value=old;const sid=$('aSession').value; const oldp=$('aPlayer').value;$('aPlayer').innerHTML=opts(state.players,'Select player');$('aPlayer').value=oldp;const attendants=state.attendance.filter(a=>a.session_id===sid&&a.checked_in&&!a.paused);$('attendance').innerHTML='<p class="hint small">'+attendants.length+' checked in: '+attendants.map(a=>esc(findPlayer(a.player_id))).join(', ')+'</p>';for(const id of ['a1','a2','b1','b2']){const old=$(id).value;$(id).innerHTML=opts(attendants.map(a=>({id:a.player_id,name:findPlayer(a.player_id)})),'Choose player');$(id).value=old}const am=state.matches.filter(m=>m.session_id===sid&&m.status==='playing');$('aMatch').innerHTML=opts(am.map(m=>({id:m.id,name:'Court '+m.court_number+' · '+m.id.slice(0,6)})),'Select active match')}
 function go(tab){location.hash='#/'+tab}
 window.go=go;
-function route(){const t=(location.hash.split('/')[1]||'home');for(const n of ['home','sessions','players','history','admin'])$(n).hidden=n!==t; $('tabs').innerHTML=['home','sessions','players','history'].map(n=>'<button class="tab '+(t===n?'on':'')+'" onclick="go(\''+n+'\')">'+n[0].toUpperCase()+n.slice(1)+'</button>').join('')}
+function route(){const t=(location.hash.split('/')[1]||'home');for(const n of ['home','sessions','players','history','admin'])$(n).hidden=n!==t;const icons={home:'<path d="m3 10 9-7 9 7v10h-6v-7H9v7H3Z"/>',sessions:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4M17 3v4M3 10h18"/>',players:'<circle cx="9" cy="8" r="3"/><path d="M3 21v-2a6 6 0 0 1 12 0v2M17 6a3 3 0 0 1 0 6M18 16a5 5 0 0 1 3 5"/>',history:'<path d="M3 12a9 9 0 1 0 3-7M3 3v5h5"/><path d="M12 7v5l4 2"/>'};$('tabs').innerHTML=['home','sessions','players','history'].map(n=>'<button class="tab '+(t===n?'on':'')+'" aria-current="'+(t===n?'page':'false')+'" onclick="go(\''+n+'\')"><svg viewBox="0 0 24 24" aria-hidden="true">'+icons[n]+'</svg><span>'+n[0].toUpperCase()+n.slice(1)+'</span></button>').join('');$('adminShortcut').classList.toggle('is-active',t==='admin')} 
 window.addEventListener('hashchange',route);
 async function auth(){const {data}=await db.auth.getUser();let admin=false;if(data?.user){const {data:roles}=await db.from('cf_admins').select('user_id').eq('user_id',data.user.id);admin=!!roles?.length}state.admin=admin;$('loginPanel').hidden=admin;$('adminPanel').hidden=!admin;render()}
 window.login=async()=>{const {error}=await db.auth.signInWithPassword({email:$('email').value.trim(),password:$('password').value});if(error)return msg(error.message);await auth();msg('Signed in')};
