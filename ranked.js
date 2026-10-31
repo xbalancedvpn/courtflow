@@ -40,7 +40,7 @@ export function initRanked({db,state,load,notify,escapeHTML,playerName}){
  async function createDuelFixtures(b,playerIds,round){const shuffled=rand(playerIds);const items=[];for(let i=0;i<shuffled.length;i+=2){const item=drawDuel(shuffled[i],shuffled[i+1]);items.push({...item,session_id:sel(),phase:'playoff',round_no:round,bracket_id:b.id,seq_no:items.length+1,kind:'duel'})}await insertFixtures(items)}
  async function advance(){try{let b=cache.brackets.find(x=>x.status==='active');if(!b)throw Error('No active bracket.');let meta=b.meta||{},live=meta.live||b.contenders,round=Number(b.round_no||1),stage=fixturesFor(b).filter(f=>f.round_no===round);
  if(stage.length&&stage.some(f=>!done(f)))throw Error('Finish all playoff matches first.');
- if(stage.length){const survivors=stage.flatMap(f=>contenderWon(f)||[]);if(stage.some(f=>f.kind==='triple')){
+ if(stage.length){const survivors=stage.flatMap(f=>contenderWon(f)||[]);if(stage.length===1&&stage[0].kind==='triple'&&b.slots>=3){
  const triple=stage[0],pair=triple.contenders.filter(id=>!triple.team_a.includes(id)||triple.team_a.includes(id));const two=triple.team_a.filter(id=>triple.contenders.includes(id));
  const solo=triple.contenders.find(id=>!two.includes(id));const soloWon=contenderWon(triple).includes(solo);const placementTop=b.rank_start;
  await award(soloWon?placementTop:placementTop+2,solo);
@@ -78,7 +78,16 @@ export function initRanked({db,state,load,notify,escapeHTML,playerName}){
  if(live.length===2&&b.slots>=2){const pair=drawDuel(live[0],live[1]);await insertFixtures([{...pair,session_id:sel(),phase:'playoff',round_no:round,bracket_id:b.id,seq_no:1,kind:'final'}]);await patchBracket(b,{round_no:round,meta:{...meta,live,soloWon:false}});await fetchAll();return}
  if(live.length===1&&b.slots===1){await award(b.rank_start,live[0]);await patchBracket(b,{status:'completed',state:'finished',meta:{...meta,live:[]}});await fetchAll();msg('Placement finalized');return}
  if(live.length>=4&&live.length%2===0){await createDuelFixtures(b,live,round);await patchBracket(b,{round_no:round,meta:{...meta,live}});await fetchAll();msg('Playoff round prepared');return}
- if(live.length>=5&&live.length%2===1){throw Error('Odd contender count '+live.length+': no-bye draw needs a special qualification format; no fixtures were created.');}
+ if(live.length===7&&b.slots===3){
+ const group=rand(live),trio=group.slice(0,3),remaining=group.slice(3),support=rand(eligibleSupport(group));
+ if(!support.length)throw Error('Need at least one volunteer support player');
+ const t={session_id:sel(),phase:'playoff',round_no:round,bracket_id:b.id,seq_no:1,kind:'triple',team_a:[trio[0],trio[1]],team_b:[trio[2],support[0]],contenders:trio};
+ const d1=drawDuel(remaining[0],remaining[1],t.team_a.concat(t.team_b)),d2=drawDuel(remaining[2],remaining[3],t.team_a.concat(t.team_b).concat(d1.team_a,d1.team_b));
+ await insertFixtures([t,{...d1,session_id:sel(),phase:'playoff',round_no:round,bracket_id:b.id,seq_no:2,kind:'duel'},{...d2,session_id:sel(),phase:'playoff',round_no:round,bracket_id:b.id,seq_no:3,kind:'duel'}]);
+ await patchBracket(b,{round_no:round,meta:{...meta,live}});
+ await fetchAll();msg('Seven-way no-bye qualification ready (3 matches)');return;
+ }
+ if(live.length>=5&&live.length%2===1){throw Error('Odd contender count '+live.length+': this bracket requires an additional fairness format; no automatic byes were assigned.');}
  if(live.length<b.slots){throw Error('Remaining bracket needs consolation placement games; no auto rank was assigned.');}
  throw Error('This playoff stage requires organizer review. No byes or placements have been assigned.');
  }catch(e){msg(e)}}
