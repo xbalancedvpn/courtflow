@@ -33,10 +33,22 @@ export function initRanked({db,state,load,notify,escapeHTML,playerName}){
  async function createBracket({contenders,tier,start,slots}){const {data,error}=await db.from('cf_ranked_brackets').insert({session_id:sel(),win_tier:tier,rank_start:start,slots,contenders:contenders.map(x=>x.id),meta:{live:contenders.map(x=>x.id),results:[],placements:[]}}).select('*').single();if(error)throw error;return data}
  async function award(placement,player_id){const {error}=await db.from('cf_ranked_awards').upsert({session_id:sel(),placement,player_id},{onConflict:'session_id,placement'});if(error)throw error}
  async function patchBracket(b,values){const {error}=await db.from('cf_ranked_brackets').update(values).eq('id',b.id);if(error)throw error}
- async function newPlayoffs(){try{if(cache.roster.length!==32||regular().length!==32||regular().some(f=>!done(f)))throw Error('Complete all 32 ranked regular matches first.');if(cache.brackets.some(b=>b.status==='active'))throw Error('Playoff already active.');let existing=cache.awards.length;let pos=existing+1;const ranked=stats();while(pos<=4){const excluded=new Set(cache.awards.map(a=>a.player_id));const unranked=ranked.filter(x=>!excluded.has(x.id));if(!unranked.length)throw Error('No eligible players');const tier=unranked[0].w,group=unranked.filter(x=>x.w===tier),slots=Math.min(group.length,5-pos);
- if(group.length<=slots){for(let i=0;i<group.length;i++)await award(pos+i,group[i].id);pos+=group.length;await fetchAll();continue;}
- const b=await createBracket({contenders:group,tier,start:pos,slots});await fetchAll();msg('Tiebreaker created: '+group.length+' contenders for '+slots+' placements');return}
- msg('Top 4 ranking finalized')}catch(e){msg(e)}}
+ async function newPlayoffs(){
+ try{
+  if(cache.roster.length!==32||regular().length!==32||regular().some(f=>!done(f)))throw Error('Complete all 32 regular matches first');
+  if(cache.brackets.some(b=>b.status==='active'))throw Error('Finish active playoff first');
+  const pos=cache.awards.length+1;
+  if(pos>4)return msg('Top 4 awards are complete');
+  const excluded=new Set([...cache.awards.map(a=>a.player_id),...cache.brackets.filter(b=>b.status==='completed').flatMap(b=>b.contenders)]);
+  const remaining=stats().filter(x=>!excluded.has(x.id));
+  if(!remaining.length)throw Error('No eligible contender remains');
+  const tier=remaining[0].w,group=remaining.filter(x=>x.w===tier);
+  if(group.length===1){await award(pos,group[0].id);await fetchAll();msg('Unique highest-win player awarded. Continue Top 4 selection');return}
+  const slots=Math.min(group.length,5-pos);
+  await createBracket({contenders:group,tier,start:pos,slots});
+  await fetchAll();msg('Wins-only playoff created: '+group.length+' tied players for '+slots+' placement(s).');
+ }catch(e){msg(e)}
+ }
  const fixturesFor=b=>playoffs().filter(f=>f.bracket_id===b.id);
  async function createDuelFixtures(b,playerIds,round){const skills=Object.fromEntries(state.players.map(p=>[p.id,p.skill]));const volunteers=eligibleSupport(playerIds);const selected=createPlayoffFixtures({players:playerIds,allContenders:b.contenders,volunteers,skills,prior:fixturesFor(b)});const items=selected.map((item,i)=>({...item,session_id:sel(),phase:'playoff',round_no:round,bracket_id:b.id,seq_no:i+1}));await insertFixtures(items)}
  async function advance(){
