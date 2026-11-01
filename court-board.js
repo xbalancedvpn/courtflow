@@ -1,5 +1,5 @@
 import {buildCourtSnapshot} from './court-board-core.js';
-export function initCourtBoard({db,state,load,notify,escapeHTML,playerName,rankedApp}){
+export function initCourtBoard({db,state,load,notify,escapeHTML,playerName,rankedApp,getEvent=()=>null}){
  const $=id=>document.getElementById(id),drafts=new Map();
  let fixtures=[],brackets=[],fetching=false,selected='';
  const name=id=>escapeHTML(playerName(id));
@@ -10,16 +10,17 @@ export function initCourtBoard({db,state,load,notify,escapeHTML,playerName,ranke
  const panel=document.createElement('div');panel.className='card';panel.id='courtBoardAdmin';panel.innerHTML='<h2>Live Court Control</h2><label>Active session<select id="courtBoardSession"></select></label><div id="courtBoardSummary"></div><div id="courtBoardAdminGrid" class="court-grid"></div><h3>Waiting fixtures</h3><div id="courtBoardQueue"></div>';
  $('adminPanel').insertBefore(panel,$('adminPanel').firstChild);
  $('sessions').insertAdjacentHTML('afterbegin','<div class="card"><h2>Live Court Board</h2><label>Session<select id="courtBoardPublicSession"></select></label><div id="courtBoardPublicSummary"></div><div id="courtBoardPublicGrid" class="court-grid"></div></div>');
- const choosePublic=$('courtBoardPublicSession'),chooseAdmin=$('courtBoardSession');
+ const choosePublic=$('courtBoardPublicSession'),chooseAdmin=$('courtBoardSession');const forcedEvent=()=>getEvent();
  const key=(id,side)=>id+':'+side;
  function render(){
-  const list=state.sessions,old=selected;
+  const list=state.sessions,old=selected,forced=getEvent();if(forced&&list.some(s=>s.id===forced))selected=forced;
   if(!list.some(s=>s.id===old))selected=list.find(s=>s.status==='active')?.id||list[0]?.id||'';
   for(const control of [choosePublic,chooseAdmin]){
-   const retain=control.value||selected;
+   const retain=forced||control.value||selected;
    control.innerHTML='<option value="">Choose session</option>'+list.map(s=>'<option value="'+s.id+'">'+escapeHTML(s.title)+'</option>').join('');
    control.value=list.some(s=>s.id===retain)?retain:selected;
   }
+  choosePublic.parentElement.hidden=!!getEvent();chooseAdmin.parentElement.hidden=!!getEvent();
   const snap=getSnapshot();
   const summary=snap?'<div class="court-summary"><span class="pill">'+escapeHTML(snap.stageLabel)+'</span><span class="pill">'+snap.playing+' playing</span><span class="pill">'+snap.available+' available</span><span class="pill">'+snap.pending.length+' waiting</span></div>':'<p class="hint small">Choose a session.</p>';
   $('courtBoardSummary').innerHTML=summary;$('courtBoardPublicSummary').innerHTML=summary;
@@ -62,7 +63,7 @@ export function initCourtBoard({db,state,load,notify,escapeHTML,playerName,ranke
    [fixtures,brackets]=response;render();
   }catch(e){notify(e.message||String(e))}finally{fetching=false}
  }
- choosePublic.onchange=()=>{selected=choosePublic.value;chooseAdmin.value=selected;render()};
- chooseAdmin.onchange=()=>{selected=chooseAdmin.value;choosePublic.value=selected;render()};
+ choosePublic.onchange=()=>{selected=forcedEvent()||choosePublic.value;chooseAdmin.value=selected;render()};
+ chooseAdmin.onchange=()=>{selected=forcedEvent()||chooseAdmin.value;choosePublic.value=selected;render()};
  return {sync:refresh,render};
 }
