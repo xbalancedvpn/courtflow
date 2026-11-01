@@ -1,5 +1,5 @@
 import {runRankedDryRun} from './ranked-qa.js';
-export function initStage5({db,state,load,notify,escapeHTML,playerName}){
+export function initStage5({db,state,load,notify,escapeHTML,playerName,getEvent=()=>null}){
  const $=id=>document.getElementById(id);
  const skills=['','Beginner','Novice','Intermediate Low','Intermediate High','Advance','Pro'];
  let view={fixtures:[],roster:[],awards:[],sessions:[],checkedSession:null};
@@ -45,7 +45,7 @@ export function initStage5({db,state,load,notify,escapeHTML,playerName}){
  }
  function renderPublic(){
   const root=$('rankedPublic');if(!root)return;
-  const ranked=state.sessions.filter(s=>s.mode==='ranked_4').sort((a,b)=>String(b.created_at).localeCompare(String(a.created_at)));
+  const ranked=state.sessions.filter(s=>s.mode==='ranked_4'&&(!getEvent()||s.id===getEvent())).sort((a,b)=>String(b.created_at).localeCompare(String(a.created_at)));
   root.innerHTML=ranked.length?ranked.map(s=>{
    const fixtures=view.fixtures.filter(f=>f.session_id===s.id&&f.phase==='regular');
    const stats=new Map(view.roster.filter(r=>r.session_id===s.id).map(r=>[r.player_id,{id:r.player_id,g:0,w:0}]));
