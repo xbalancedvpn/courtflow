@@ -145,7 +145,7 @@ const cfChannel=db.channel('courtflow-public').on('postgres_changes',{event:'*',
 
 rankedApp=initRanked({db,state,load,notify:msg,escapeHTML:esc,playerName:findPlayer});
 stage5=initStage5({db,state,load,notify:msg,escapeHTML:esc,playerName:findPlayer,getEvent:()=>eventWorkspace?.getEvent()});
-courtBoard=initCourtBoard({db,state,load,notify:msg,escapeHTML:esc,playerName:findPlayer,rankedApp});
+courtBoard=initCourtBoard({db,state,load,notify:msg,escapeHTML:esc,playerName:findPlayer,rankedApp,getEvent:()=>eventWorkspace?.getEvent()});
 tournamentCenter=initTournamentCenter({state,escapeHTML:esc,playerName:findPlayer,rankedApp,stage5,courtBoard});
 eventWorkspace=initEventWorkspace({state,db,notify:msg,escapeHTML:esc,playerName:findPlayer});
 eventQueue=initEventQueue({db,state,load,notify:msg,escapeHTML:esc,playerName:findPlayer,getEvent:eventWorkspace.getEvent});
