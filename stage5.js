@@ -2,6 +2,7 @@ import {runRankedDryRun} from './ranked-qa.js';
 export function initStage5({db,state,load,notify,escapeHTML,playerName,getEvent=()=>null,dialogs}){
  const $=id=>document.getElementById(id);
  const skills=['','Beginner','Novice','Intermediate Low','Intermediate High','Advance','Pro'];
+ const short=['','BEG','NOV','ILO','IHI','ADV','PRO'];
  let view={fixtures:[],roster:[],awards:[],sessions:[],checkedSession:null};
  const err=e=>notify(e.message||String(e));
  const skill=n=>skills[Number(n)]||'Unrated';
