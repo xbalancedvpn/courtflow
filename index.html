@@ -65,7 +65,8 @@ let stage5=null;
 let courtBoard=null;
 let tournamentCenter=null;
 let eventWorkspace=null;
-let eventQueue=null;
+let eventQueue=null,eventOperations=null,eventPlayers=null;
+const dialogs=initCourtFlowDialogs();
 function msg(s){$('message').textContent=s;setTimeout(()=>$('message').textContent='',6500)}
 async function query(table){const {data,error}=await db.from('cf_'+table).select('*');if(error)throw error;return data||[]}
 async function load(){try{const [players,sessions,attendance,matches,matchplayers]=await Promise.all(['players','sessions','attendance','matches','match_players'].map(query));Object.assign(state,{players,sessions,attendance,matches,matchplayers});render();if(rankedApp)await rankedApp.sync();if(stage5)await stage5.sync();if(courtBoard)await courtBoard.sync();if(tournamentCenter)tournamentCenter.sync(stage5?.getTournamentData());if(eventWorkspace)eventWorkspace.refresh();if(eventQueue)await eventQueue.sync()}catch(e){msg('Data load: '+e.message)}}
