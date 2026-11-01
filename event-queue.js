@@ -6,7 +6,7 @@ export function initEventQueue({db,state,load,notify,escapeHTML,playerName,getEv
  $('adminPanel').append(panel);
  $('sessions').insertAdjacentHTML('beforeend','<div class="card" id="eqPublic"><h2>Next Court · Provisional</h2><div id="eqPublicList"></div><h3>Waiting players</h3><div id="eqWaiting"></div></div>');
  const slots=['A1','A2','B1','B2'];
- $('eqTeams').innerHTML=slots.map(x=>'<label>'+x+'<select id="eq'+x+'"></select></label>').join('');
+ $('eqTeams').innerHTML=slots.map(x=>'<label>'+x+'<select id="eq'+x+'" hidden></select><button type="button" class="secondary" data-pick="'+x+'">Choose player</button></label>').join('');
  const session=()=>state.sessions.find(s=>s.id===sid);
  const status=()=>new Set(state.matches.filter(m=>m.session_id===sid&&m.status==='playing').flatMap(m=>state.matchplayers.filter(p=>p.match_id===m.id).map(p=>p.player_id)));
  const available=()=>state.attendance.filter(a=>a.session_id===sid&&a.checked_in&&!a.paused).map(a=>state.players.find(p=>p.id===a.player_id)).filter(p=>p?.active&&!status().has(p.id));
@@ -24,7 +24,8 @@ export function initEventQueue({db,state,load,notify,escapeHTML,playerName,getEv
   });
   $('eqWaiting').innerHTML=waiting.map((p,i)=>'<div class="rank-row">'+(i+1)+'. '+escapeHTML(p.name)+'</div>').join('')||'<p class="hint small">No waiting players.</p>';
   const choices=available().map(p=>'<option value="'+p.id+'">'+escapeHTML(p.name)+'</option>').join('');
-  for(const slot of slots){const el=$('eq'+slot),old=el.value;el.innerHTML='<option value="">Select</option>'+choices;el.value=old}
+  for(const slot of slots){const el=$('eq'+slot),old=el.value;el.innerHTML='<option value="">Select</option>'+choices;el.value=old;const b=$('eqTeams').querySelector('[data-pick="'+slot+'"]');if(b)b.textContent=el.value?playerName(el.value):'Choose player'}
+  $('eqTeams').querySelectorAll('[data-pick]').forEach(b=>b.onclick=async()=>{const id=await dialogs.pick(available(),'Select '+b.dataset.pick);if(id){$('eq'+b.dataset.pick).value=id;b.textContent=playerName(id)}});
   const schedule=fixtures.filter(f=>f.session_id===sid&&!f.match_id&&!items.some((x,i)=>i!==editIndex&&x.fixture_id===f.id));
   $('eqFixture').innerHTML='<option value="">Select fixture</option>'+schedule.map(f=>'<option value="'+f.id+'">'+f.phase+' R'+f.round_no+' M'+f.seq_no+'</option>').join('');
   $('eqFixture').parentElement.hidden=s?.mode!=='ranked_4';$('eqTeams').hidden=s?.mode==='ranked_4';
