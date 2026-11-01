@@ -3,7 +3,8 @@ export function initEventQueue({db,state,load,notify,escapeHTML,playerName,getEv
  let items=[],version=0,fixtures=[],sid='',editIndex=-1;
  const panel=document.createElement('section');panel.className='card';panel.id='eventQueuePanel';
  panel.innerHTML='<h2>Next Court · Editable</h2><p class="hint small">Up to three provisional matches. No court is reserved before Start.</p><div id="eqList"></div><div id="eqNew"><label>Scheduled fixture<select id="eqFixture"></select></label><div id="eqTeams" class="grid"></div><button id="eqAdd">Add to queue</button></div><h3>Available courts</h3><div id="eqCourts" class="stack"></div>';
- $('adminPanel').append(panel);
+ // The Admin workspace owns queue visibility. Never append this editor outside its tab.
+ ($('ewPane-queue')||$('adminPanel')).append(panel);
  $('sessions').insertAdjacentHTML('beforeend','<div class="card" id="eqPublic"><h2>Next Court · Provisional</h2><div id="eqPublicList"></div><h3>Waiting players</h3><div id="eqWaiting"></div></div>');
  const slots=['A1','A2','B1','B2'];
  $('eqTeams').innerHTML=slots.map(x=>'<label>'+x+'<select id="eq'+x+'" hidden></select><button type="button" class="secondary" data-pick="'+x+'">Choose player</button></label>').join('');
