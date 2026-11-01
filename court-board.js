@@ -7,7 +7,7 @@ export function initCourtBoard({db,state,load,notify,escapeHTML,playerName,ranke
  const getSnapshot=()=>{const s=latest();return s?buildCourtSnapshot({session:s,matches:state.matches,matchplayers:state.matchplayers,fixtures,brackets}):null};
  const css=document.createElement('style');css.textContent='.court-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:12px}.court-tile{border:1px solid #354254;background:#161f2d;border-radius:16px;padding:15px;min-width:0}.court-tile.playing{border-color:#a68b25}.court-tile .teams{display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center;overflow-wrap:anywhere;font-size:13px;padding:12px 0}.court-tile .teams b{color:#f3c925;font-size:11px}.court-status{font-size:12px;color:#f3c925}.court-tile input{min-width:0}.court-actions{display:flex;gap:7px}.court-actions>*{flex:1;min-width:0}.court-status.available{color:#8fd9b2}.court-status.playing{color:#f3c925}.court-summary{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}.court-summary .pill{white-space:nowrap}.court-heading{display:flex;align-items:center;justify-content:space-between;gap:8px}';
  document.head.append(css);
- const panel=document.createElement('div');panel.className='card';panel.id='courtBoardAdmin';panel.innerHTML='<h2>Live Court Control</h2><label>Active session<select id="courtBoardSession"></select></label><div id="courtBoardSummary"></div><div id="courtBoardAdminGrid" class="court-grid"></div><h3>Waiting fixtures</h3><div id="courtBoardQueue"></div>';
+ const panel=document.createElement('div');panel.className='card';panel.id='courtBoardAdmin';panel.innerHTML='<h2>Live Court Control</h2><label>Active session<select id="courtBoardSession"></select></label><div id="courtBoardSummary"></div><div id="courtBoardAdminGrid" class="court-grid"></div>';
  $('adminPanel').insertBefore(panel,$('adminPanel').firstChild);
  $('sessions').insertAdjacentHTML('afterbegin','<div class="card"><h2>Live Court Board</h2><label>Session<select id="courtBoardPublicSession"></select></label><div id="courtBoardPublicSummary"></div><div id="courtBoardPublicGrid" class="court-grid"></div></div>');
  const choosePublic=$('courtBoardPublicSession'),chooseAdmin=$('courtBoardSession');const forcedEvent=()=>getEvent();
@@ -36,8 +36,7 @@ export function initCourtBoard({db,state,load,notify,escapeHTML,playerName,ranke
     return '<div class="court-tile '+c.status+'"><div class="court-heading"><strong>Court '+c.number+'</strong><span class="court-status '+c.status+'">'+status+'</span></div>'+detail+edit+score+start+'</div>';
    }).join(''):'<p class="hint small">No courts to show.</p>';
   }
-  const queue=$('courtBoardQueue');
-  queue.innerHTML=snap?.pending.length?snap.pending.slice(0,12).map(f=>'<div class="rank-row"><strong>'+escapeHTML(f.phase==='playoff'?'Playoff':'Regular')+' · Match '+f.seq_no+'</strong><span>'+f.team_a.map(name).join(' + ')+' vs '+f.team_b.map(name).join(' + ')+'</span></div>').join(''):'<p class="hint small">No pending fixtures for the current stage.</p>';
+
   $('courtBoardAdminGrid').querySelectorAll('[data-edit-lineup]').forEach(b=>b.onclick=()=>editLineup(b.dataset.editLineup));
   $('courtBoardAdminGrid').querySelectorAll('[data-score]').forEach(el=>el.oninput=()=>drafts.set(key(el.dataset.score,el.dataset.side),el.value));
   $('courtBoardAdminGrid').querySelectorAll('[data-finish]').forEach(el=>el.onclick=()=>finish(el.dataset.finish));
