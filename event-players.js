@@ -14,7 +14,8 @@ function render(){
  const busy=new Set(state.matches.filter(m=>m.session_id===sid&&m.status==='playing').flatMap(m=>state.matchplayers.filter(p=>p.match_id===m.id).map(p=>p.player_id)));
  const q=search.value.trim().toLowerCase(),all=state.players.filter(p=>p.active&&p.name.toLowerCase().includes(q));
  const present=all.filter(p=>checked.has(p.id)),absent=all.filter(p=>!checked.has(p.id));
- const row=p=>'<div class="rank-row"><strong>'+escapeHTML(p.name)+'</strong><span class="hint small">'+(skillCode[Number(p.skill)]||'---')+'</span><span class="hint small">'+(busy.has(p.id)?'PLAYING':checked.has(p.id)?'CHECKED IN':'CHECKED OUT')+'</span><button data-toggle="'+p.id+'" class="secondary">'+(checked.has(p.id)?'Check out':'Check in')+'</button></div>';
+ const paid=new Map();for(const receipt of state.eventPayments||[])if(receipt.session_id===sid)paid.set(receipt.player_id,(paid.get(receipt.player_id)||0)+Number(receipt.amount));const fee=Number(state.sessions.find(e=>e.id===sid)?.fee||0);
+ const row=p=>'<div class="rank-row"><strong>'+escapeHTML(p.name)+'</strong><span class="hint small">'+(skillCode[Number(p.skill)]||'---')+' · '+(fee===0?'FREE':(paid.get(p.id)||0)>=fee?'PAID':(paid.get(p.id)||0)>0?'PARTIAL':'UNPAID')+'</span><span class="hint small">'+(busy.has(p.id)?'PLAYING':checked.has(p.id)?'CHECKED IN':'CHECKED OUT')+'</span><button data-toggle="'+p.id+'" class="secondary">'+(checked.has(p.id)?'Check out':'Check in')+'</button></div>';
  root.querySelector('#epList').innerHTML='<h3>Checked In ('+present.length+')</h3>'+(present.map(row).join('')||'<p class="hint small">No players.</p>')+'<h3>Checked Out ('+absent.length+')</h3>'+(absent.map(row).join('')||'<p class="hint small">No players.</p>');
  root.querySelectorAll('[data-toggle]').forEach(b=>b.onclick=()=>checked.has(b.dataset.toggle)?checkout(b.dataset.toggle):checkin(b.dataset.toggle));
 }
