@@ -53,6 +53,7 @@ import {initCourtBoard} from './court-board.js';
 import {initTournamentCenter} from './tournament-center.js';
 import {initEventWorkspace} from './event-workspace.js';
 import {initEventQueue} from './event-queue.js';
+import {initCourtFlowDialogs} from './cf-dialogs.js';
 const db=createClient('https://okragfzmoirqvkqldcbf.supabase.co','sb_publishable_aPLxA3R26OgZgwo56L6nNw_nZ3L8ZGD');
 const $=x=>document.getElementById(x);
 const cfSkillLabels=['','Beginner','Novice','Intermediate Low','Intermediate High','Advance','Pro'];const cfSkillName=n=>cfSkillLabels[Number(n)]||'Not rated'; const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
