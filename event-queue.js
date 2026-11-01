@@ -1,4 +1,4 @@
-export function initEventQueue({db,state,load,notify,escapeHTML,playerName,getEvent}){
+export function initEventQueue({db,state,load,notify,escapeHTML,playerName,getEvent,dialogs}){
  const $=id=>document.getElementById(id),name=id=>escapeHTML(playerName(id));
  let items=[],version=0,fixtures=[],sid='',editIndex=-1;
  const panel=document.createElement('section');panel.className='card';panel.id='eventQueuePanel';
@@ -40,7 +40,7 @@ export function initEventQueue({db,state,load,notify,escapeHTML,playerName,getEv
  }
  async function dispatch(court){
   if(busy||!sid||!items.length||!state.admin)return;
-  if(!confirm('Start first provisional match on Court '+court+'?'))return;busy=true;
+  if(!await dialogs.confirm('Start first provisional match on Court '+court+'?','Start Next Court'))return;busy=true;
   try{const {error}=await db.rpc('cf_event_queue_dispatch',{p_session_id:sid,p_court_number:court,p_expected_version:version});if(error)throw error;await load();notify('Match started on Court '+court)}catch(e){notify(e.message||String(e))}finally{busy=false;await sync()}
  }
  $('eqAdd').onclick=()=>{if(items.length>=3)return;let entry;if(session()?.mode==='ranked_4'){const fixture_id=$('eqFixture').value;if(!fixture_id)return notify('Select a fixture');entry={kind:'ranked',fixture_id}}else{const arr=slots.map(x=>$('eq'+x).value);if(arr.some(x=>!x)||new Set(arr).size!==4)return notify('Choose four different players');entry={kind:'open',team_a:arr.slice(0,2),team_b:arr.slice(2)}}const next=[...items];if(editIndex>=0)next[editIndex]=entry;else next.push(entry);editIndex=-1;$('eqAdd').textContent='Add to queue';save(next)};
