@@ -1,5 +1,5 @@
 import {runRankedDryRun} from './ranked-qa.js';
-export function initStage5({db,state,load,notify,escapeHTML,playerName,getEvent=()=>null}){
+export function initStage5({db,state,load,notify,escapeHTML,playerName,getEvent=()=>null,dialogs}){
  const $=id=>document.getElementById(id);
  const skills=['','Beginner','Novice','Intermediate Low','Intermediate High','Advance','Pro'];
  let view={fixtures:[],roster:[],awards:[],sessions:[],checkedSession:null};
@@ -17,7 +17,7 @@ export function initStage5({db,state,load,notify,escapeHTML,playerName,getEvent=
   if(!lines.length||lines.some(x=>x.length<2||x.length>90)||lines.length!==unique.length||lines.length>100)return notify('Enter up to 100 unique valid names (2–90 characters), one per line.');
   const existing=new Set(state.players.map(p=>p.name.toLowerCase()));
   if(lines.some(x=>existing.has(x.toLowerCase())))return notify('Some names already exist. Remove duplicates before adding.');
-  if(!confirm('Register '+lines.length+' new players?'))return;
+  if(!await dialogs.confirm('Register '+lines.length+' new players?','Register players'))return;
   try{const {error}=await db.from('cf_players').insert(lines.map(name=>({name,skill:Number($('stage5skill').value)})));if(error)throw error;$('stage5names').value='';await load();notify(lines.length+' players registered')}catch(e){err(e)}
  };
  $('stage5test').onclick=()=>{try{const r=runRankedDryRun(10);$('stage5testresult').textContent='PASS · '+r.trials+' simulated tournaments · '+r.games+' regular games · '+r.playoffMatches+' playoff matches · zero database writes.'}catch(e){$('stage5testresult').textContent='FAILED · '+e.message}};
@@ -26,8 +26,7 @@ export function initStage5({db,state,load,notify,escapeHTML,playerName,getEvent=
   $('stage5playerlist').innerHTML=matches.map(p=>'<div class="rank-row"><strong>'+escapeHTML(p.name)+'</strong><span class="hint small">'+skill(p.skill)+'</span><button class="secondary" data-edit="'+p.id+'">Edit</button></div>').join('')||'<p class="hint small">No matching players.</p>';
   $('stage5playerlist').querySelectorAll('[data-edit]').forEach(el=>el.onclick=async()=>{
    const p=state.players.find(x=>x.id===el.dataset.edit);if(!p)return;
-   const name=prompt('Edit player name',p.name);if(name===null)return;
-   const level=prompt('Skill level: 1 Beginner, 2 Novice, 3 Intermediate Low, 4 Intermediate High, 5 Advance, 6 Pro',p.skill);if(level===null)return;
+   const change=await dialogs.form('Edit player',[{key:'name',label:'Player name',value:p.name,required:true},{key:'level',label:'Skill level',value:String(p.skill),options:['Beginner','Novice','Intermediate Low','Intermediate High','Advance','Pro'].map((label,i)=>({label,value:String(i+1)}))}]);if(!change)return;const {name,level}=change;
    if(name.trim().length<2||name.trim().length>90||!Number.isInteger(Number(level))||Number(level)<1||Number(level)>6)return notify('Invalid player name or skill level');
    try{const {error}=await db.from('cf_players').update({name:name.trim(),skill:Number(level)}).eq('id',p.id);if(error)throw error;await load();notify('Player updated')}catch(e){err(e)}
   });
