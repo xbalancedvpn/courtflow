@@ -151,7 +151,9 @@ rankedApp=initRanked({db,state,load,notify:msg,escapeHTML:esc,playerName:findPla
 stage5=initStage5({db,state,load,notify:msg,escapeHTML:esc,playerName:findPlayer,getEvent:()=>eventWorkspace?.getEvent()});
 courtBoard=initCourtBoard({db,state,load,notify:msg,escapeHTML:esc,playerName:findPlayer,rankedApp,getEvent:()=>eventWorkspace?.getEvent()});
 tournamentCenter=initTournamentCenter({state,escapeHTML:esc,playerName:findPlayer,rankedApp,stage5,courtBoard});
-eventWorkspace=initEventWorkspace({state,db,notify:msg,escapeHTML:esc,playerName:findPlayer});
+eventOperations=initEventOperations({db,state,load,notify:msg,dialogs,getEvent:()=>eventWorkspace?.getEvent(),playerName:findPlayer,escapeHTML:esc});
+eventPlayers=initEventPlayers({db,state,load,notify:msg,dialogs,getEvent:()=>eventWorkspace?.getEvent(),playerName:findPlayer,escapeHTML:esc});
+eventWorkspace=initEventWorkspace({state,escapeHTML:esc,onEventChange:()=>load()});
 eventQueue=initEventQueue({db,state,load,notify:msg,escapeHTML:esc,playerName:findPlayer,getEvent:eventWorkspace.getEvent});
 window.addEventListener('hashchange',()=>eventWorkspace.refresh());
 route();await auth();await load();setInterval(load,20000);
