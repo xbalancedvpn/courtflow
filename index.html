@@ -58,6 +58,7 @@ import {initEventOperations} from './event-operations.js';
 import {initEventPlayers} from './event-players.js';
 import {initEventFinance} from './event-finance.js';
 import {initGCImport} from './gc-import.js';
+import {initMidnightArena} from './arena.js';
 const db=createClient('https://okragfzmoirqvkqldcbf.supabase.co','sb_publishable_aPLxA3R26OgZgwo56L6nNw_nZ3L8ZGD');
 const $=x=>document.getElementById(x);
 const cfSkillLabels=['','Beginner','Novice','Intermediate Low','Intermediate High','Advance','Pro'];const cfSkillName=n=>cfSkillLabels[Number(n)]||'Not rated'; const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -66,12 +67,12 @@ let rankedApp=null;
 let stage5=null;
 let courtBoard=null;
 let tournamentCenter=null;
-let eventWorkspace=null;
+let eventWorkspace=null,midnightArena=null;
 let eventQueue=null,eventOperations=null,eventPlayers=null,eventFinance=null,gcImport=null;
 const dialogs=initCourtFlowDialogs();
 function msg(s){$('message').textContent=s;setTimeout(()=>$('message').textContent='',6500)}
 async function query(table){const {data,error}=await db.from('cf_'+table).select('*');if(error)throw error;return data||[]}
-async function load(){try{const [players,sessions,attendance,matches,matchplayers]=await Promise.all(['players','sessions','attendance','matches','match_players'].map(query));Object.assign(state,{players,sessions,attendance,matches,matchplayers});render();if(rankedApp)await rankedApp.sync();if(stage5)await stage5.sync();if(courtBoard)await courtBoard.sync();if(tournamentCenter)tournamentCenter.sync(stage5?.getTournamentData());if(eventWorkspace)eventWorkspace.refresh();if(eventQueue)await eventQueue.sync();if(eventOperations)eventOperations.render();if(eventFinance)await eventFinance.sync();if(eventPlayers)eventPlayers.render();if(gcImport)gcImport.render()}catch(e){msg('Data load: '+e.message)}}
+async function load(){try{const [players,sessions,attendance,matches,matchplayers]=await Promise.all(['players','sessions','attendance','matches','match_players'].map(query));Object.assign(state,{players,sessions,attendance,matches,matchplayers});render();if(rankedApp)await rankedApp.sync();if(stage5)await stage5.sync();if(courtBoard)await courtBoard.sync();if(tournamentCenter)tournamentCenter.sync(stage5?.getTournamentData());if(eventWorkspace)eventWorkspace.refresh();if(eventQueue)await eventQueue.sync();if(eventOperations)eventOperations.render();if(eventFinance)await eventFinance.sync();if(eventPlayers)eventPlayers.render();if(gcImport)gcImport.render();if(midnightArena)midnightArena.refresh()}catch(e){msg('Data load: '+e.message)}}
 function findPlayer(id){return state.players.find(p=>p.id===id)?.name||'Unknown player'}
 function render(){const s=state;$('sessionsList').innerHTML=s.sessions.length?s.sessions.slice().reverse().map(x=>{const ms=s.matches.filter(m=>m.session_id===x.id);return '<div class="card"><div class="flex"><strong>'+esc(x.title)+'</strong><span class="pill">'+esc(x.status)+'</span></div><p class="hint small">'+esc(x.session_date)+' · '+x.courts+' court(s) · '+esc(x.mode)+'</p>'+ms.map(m=>matchCard(m)).join('')+'</div>'}).join(''):'<div class="empty">No sessions yet. Organizers can create one from Admin.</div>';
 $('playersList').innerHTML=s.players.length?s.players.filter(p=>!eventWorkspace?.getEvent()||s.attendance.some(a=>a.session_id===eventWorkspace.getEvent()&&a.player_id===p.id&&a.checked_in&&!a.paused)).map(p=>{const pm=s.matchplayers.filter(mp=>mp.player_id===p.id);const completed=pm.filter(mp=>s.matches.some(m=>m.id===mp.match_id&&m.status==='completed'));const wins=completed.filter(mp=>s.matches.find(m=>m.id===mp.match_id)?.winner_team===mp.team).length;return '<div class="card"><div class="flex"><strong>'+esc(p.name)+'</strong><span class="pill">'+esc(cfSkillName(p.skill))+'</span></div><p class="hint small">'+completed.length+' games · '+wins+' wins · '+(completed.length-wins)+' losses</p></div>'}).join(''):'<div class="empty">No players registered.</div>';
@@ -159,8 +160,9 @@ eventFinance=initEventFinance({db,state,load,notify:msg,dialogs,getEvent:()=>eve
 eventOperations=initEventOperations({db,state,load,notify:msg,dialogs,getEvent:()=>eventWorkspace?.getEvent(),playerName:findPlayer,escapeHTML:esc});
 eventPlayers=initEventPlayers({db,state,load,notify:msg,dialogs,getEvent:()=>eventWorkspace?.getEvent(),playerName:findPlayer,escapeHTML:esc});
 eventWorkspace=initEventWorkspace({state,escapeHTML:esc,onEventChange:()=>load()});
+midnightArena=initMidnightArena({state,getEvent:eventWorkspace.getEvent});
 eventQueue=initEventQueue({db,state,load,notify:msg,escapeHTML:esc,playerName:findPlayer,getEvent:eventWorkspace.getEvent,dialogs});
 gcImport=initGCImport({db,state,load,notify:msg,dialogs,getEvent:eventWorkspace.getEvent,escapeHTML:esc});
-window.addEventListener('hashchange',()=>eventWorkspace.refresh());
-route();await auth();await load();setInterval(load,20000);
+window.addEventListener('hashchange',()=>{eventWorkspace.refresh();midnightArena?.refresh()});
+route();await auth();await load();midnightArena?.refresh();setInterval(load,20000);
 </script></body></html>
