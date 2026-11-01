@@ -14,6 +14,8 @@ function move(el,to){if(el)panes[to].append(el)}
 move($('tournamentCenter'),'overview');
 move($('courtBoardAdmin'),'courts');
 move($('eventQueuePanel'),'queue');
+// Hide the legacy Smart queue & rotation card; it duplicates Next Court and is not the authoritative dispatch queue.
+const legacyQueue=$('cfQueue')?.closest('.card');if(legacyQueue){legacyQueue.hidden=true;legacyQueue.dataset.legacyControl='true'}
 move($('eventPlayerManager'),'checkin');
 move($('eventOperations'),'settings');
 move($('rPanel'),'ranked');
