@@ -30,16 +30,38 @@ export function initCourtBoard({db,state,load,notify,escapeHTML,playerName,ranke
     const teams=c.teams||c.lastTeams;
     const lineup=teams?'<div class="teams"><div>'+teams[0].map(name).join('<div>+</div>')+'</div><b>VS</b><div>'+teams[1].map(name).join('<div>+</div>')+'</div></div>':'<p class="hint small">No match assigned.</p>';
     const detail=c.live?lineup:c.last?'<p class="hint small">Last result · '+c.last.score_a+'–'+c.last.score_b+'</p>'+lineup:'<p class="hint small">Ready for the next match.</p>';
+    const edit=admin&&c.live&&c.live.mode!=='ranked_4'?'<button class="secondary" data-edit-lineup="'+c.live.id+'" aria-label="Edit playing lineup">✎ Edit Lineup</button>':'';
     const score=admin&&c.live?'<div class="court-actions"><input type="number" min="0" max="99" placeholder="Team A" data-score="'+c.live.id+'" data-side="a" value="'+escapeHTML(drafts.get(key(c.live.id,'a'))??'')+'"><input type="number" min="0" max="99" placeholder="Team B" data-score="'+c.live.id+'" data-side="b" value="'+escapeHTML(drafts.get(key(c.live.id,'b'))??'')+'"></div><button data-finish="'+c.live.id+'">Confirm final score</button>':'';
     const start=admin&&c.canStart?'<button class="secondary" data-start="'+c.number+'">Start next scheduled match</button>':'';
-    return '<div class="court-tile '+c.status+'"><div class="court-heading"><strong>Court '+c.number+'</strong><span class="court-status '+c.status+'">'+status+'</span></div>'+detail+score+start+'</div>';
+    return '<div class="court-tile '+c.status+'"><div class="court-heading"><strong>Court '+c.number+'</strong><span class="court-status '+c.status+'">'+status+'</span></div>'+detail+edit+score+start+'</div>';
    }).join(''):'<p class="hint small">No courts to show.</p>';
   }
   const queue=$('courtBoardQueue');
   queue.innerHTML=snap?.pending.length?snap.pending.slice(0,12).map(f=>'<div class="rank-row"><strong>'+escapeHTML(f.phase==='playoff'?'Playoff':'Regular')+' · Match '+f.seq_no+'</strong><span>'+f.team_a.map(name).join(' + ')+' vs '+f.team_b.map(name).join(' + ')+'</span></div>').join(''):'<p class="hint small">No pending fixtures for the current stage.</p>';
+  $('courtBoardAdminGrid').querySelectorAll('[data-edit-lineup]').forEach(b=>b.onclick=()=>editLineup(b.dataset.editLineup));
   $('courtBoardAdminGrid').querySelectorAll('[data-score]').forEach(el=>el.oninput=()=>drafts.set(key(el.dataset.score,el.dataset.side),el.value));
   $('courtBoardAdminGrid').querySelectorAll('[data-finish]').forEach(el=>el.onclick=()=>finish(el.dataset.finish));
   $('courtBoardAdminGrid').querySelectorAll('[data-start]').forEach(el=>el.onclick=()=>start(Number(el.dataset.start)));
+ }
+ async function editLineup(id){
+  const match=state.matches.find(m=>m.id===id);
+  if(!match||match.status!=='playing'||match.mode==='ranked_4')return notify('This lineup cannot be edited');
+  const slots=state.matchplayers.filter(p=>p.match_id===id).sort((a,b)=>a.team-b.team);
+  const options=slots.map(p=>({label:'Team '+p.team+' · '+playerName(p.player_id),value:p.player_id}));
+  const current=await dialogs.form('Edit Court '+match.court_number+' lineup',[{key:'old',label:'Select incorrect player',options,required:true}],'Choose the player to replace, then select an available checked-in player.');
+  if(!current)return;
+  const occupied=new Set(state.matches.filter(m=>m.session_id===match.session_id&&m.status==='playing').flatMap(m=>state.matchplayers.filter(p=>p.match_id===m.id).map(p=>p.player_id)));
+  const candidates=state.attendance.filter(a=>a.session_id===match.session_id&&a.checked_in&&!a.paused&&!occupied.has(a.player_id)).map(a=>state.players.find(p=>p.id===a.player_id)).filter(p=>p&&p.active);
+  if(!candidates.length)return notify('No available checked-in players');
+  const replacement=await dialogs.pick(candidates,'Select replacement player');
+  if(!replacement)return;
+  const data=await dialogs.form('Confirm lineup correction',[{key:'reason',label:'Correction reason',required:true,placeholder:'Wrong name selected'}],'Players already staged in Next Court can be selected. Their provisional lineup will be removed to prevent double-booking.');
+  if(!data)return;
+  if(!await dialogs.confirm('Replace '+playerName(current.old)+' with '+playerName(replacement)+' on Court '+match.court_number+'?','Save lineup correction'))return;
+  const {data:result,error}=await db.rpc('cf_replace_playing_player',{p_match_id:id,p_old_player_id:current.old,p_new_player_id:replacement,p_reason:data.reason});
+  if(error)return notify(error.message);
+  await load();await refresh();
+  notify('Lineup updated'+(result?.removed_provisional_matches?' · '+result.removed_provisional_matches+' queue entry removed':''));
  }
  async function start(court){
   const snap=getSnapshot();if(!snap||!snap.nextFixture||!state.admin)return notify('No scheduled Ranked match is waiting');
