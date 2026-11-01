@@ -1,5 +1,5 @@
 import {summarizeTournament,createStandingsCSV} from './tournament-center-core.js';
-export function initTournamentCenter({state,escapeHTML,playerName,rankedApp,stage5,courtBoard}){
+export function initTournamentCenter({state,escapeHTML,playerName,rankedApp,stage5,courtBoard,getEvent=()=>null}){
  const $=id=>document.getElementById(id);
  const panel=document.createElement('section');panel.className='card';panel.id='tournamentCenter';
  panel.innerHTML='<h2>Tournament Control Center</h2><p class="hint small">One place to monitor an event. Final scores remain manual.</p><label>Session<select id="tcSession"></select></label><div id="tcMetrics" class="tc-metrics"></div><div id="tcNext" class="tc-next"></div><div class="stack tc-shortcuts"><button class="secondary" id="tcCourts">Live courts</button><button class="secondary" id="tcRanked">Ranked controls</button><button class="secondary" id="tcPlayers">Players & check-in</button><button class="secondary" id="tcExport">Export CSV</button></div><h3>Official Top 4</h3><div id="tcAwards"></div><h3>Individual regular-game standings</h3><div id="tcStandings"></div><div id="tcWarnings"></div>';
@@ -16,7 +16,7 @@ export function initTournamentCenter({state,escapeHTML,playerName,rankedApp,stag
  };
  function render(){
   const select=$('tcSession');
-  const sessions=state.sessions.filter(x=>x.status==='active'||x.mode==='ranked_4');
+  const sessions=state.sessions.filter(x=>x.status==='active'||x.mode==='ranked_4');const forced=getEvent();if(forced&&sessions.some(x=>x.id===forced))selected=forced;
   if(!sessions.some(s=>s.id===selected))selected=sessions.find(x=>x.status==='active'&&x.mode==='ranked_4')?.id||sessions[0]?.id||'';
   select.innerHTML='<option value="">Choose session</option>'+sessions.map(s=>'<option value="'+s.id+'">'+escapeHTML(s.title)+'</option>').join('');select.value=selected;
   const session=state.sessions.find(s=>s.id===selected);
