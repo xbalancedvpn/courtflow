@@ -89,47 +89,43 @@ export function initRanked({db,state,load,notify,escapeHTML,playerName}){
  }
  const fixturesFor=b=>playoffs().filter(f=>f.bracket_id===b.id);
  async function createDuelFixtures(b,playerIds,round){const skills=Object.fromEntries(state.players.map(p=>[p.id,p.skill]));const volunteers=eligibleSupport(playerIds);const selected=createPlayoffFixtures({players:playerIds,allContenders:b.contenders,volunteers,skills,prior:fixturesFor(b)});const items=selected.map((item,i)=>({...item,session_id:sel(),phase:'playoff',round_no:round,bracket_id:b.id,seq_no:i+1}));await insertFixtures(items)}
+ let advancing=false;
  async function advance(){
+  if(advancing)return msg('Playoff update is already processing');
+  advancing=true;
   try{
-   let b=cache.brackets.find(x=>x.status==='active');
+   await fetchAll();
+   const b=cache.brackets.find(x=>x.status==='active');
    if(!b)throw Error('No active playoff bracket');
    const stage=fixturesFor(b).filter(f=>f.round_no===b.round_no);
-   let engine=b.meta?.engine||newPlacementState(b.contenders,b.rank_start,b.slots);
+   const original=b.meta?.engine??null;
+   const engine=original||newPlacementState(b.contenders,b.rank_start,b.slots);
+   let next,action,payload=[];
    if(engine.current){
     if(!stage.length||stage.some(f=>!done(f)))throw Error('Finish all matches in the current playoff wave');
     const outcomes=Object.fromEntries(stage.map(f=>[f.id,matches().get(f.match_id)?.winner_team]));
-    const next=settlePlacementWave(engine,stage,outcomes);
-    engine=next.state;
-    // Save the transition before creating the next wave. Repeated clicks only resume.
-    await patchBracket(b,{meta:{...b.meta,engine}});
-    await fetchAll();b=cache.brackets.find(x=>x.id===b.id);
-    for(const item of engine.awards){
-      if(!cache.awards.some(a=>a.placement===item.placement&&a.player_id===item.player_id)){
-        await award(item.placement,item.player_id);
-      }
-    }
-    await fetchAll();b=cache.brackets.find(x=>x.id===b.id);
-    if(next.completed){
-      await patchBracket(b,{status:'completed',state:'finished',meta:{...b.meta,engine}});
-      await fetchAll();msg('Playoff placement complete; continue Top 4 selection');return;
-    }
-   }
-   if(!engine.current){
+    next=settlePlacementWave(engine,stage,outcomes);
+    action='settle';
+   }else{
     const job=engine.jobs[0];
-    if(!job){await patchBracket(b,{status:'completed',state:'finished',meta:{...b.meta,engine}});await fetchAll();return}
+    if(!job)throw Error('Playoff has no remaining placement jobs');
     const skills=Object.fromEntries(state.players.map(p=>[p.id,p.skill]));
-    const prior=fixturesFor(b);
     const volunteers=eligibleSupport(job.ids);
-    const next=preparePlacementWave(engine,ids=>createPlayoffFixtures({players:ids,allContenders:b.contenders,volunteers,skills,prior}));
-    if(next.completed){await patchBracket(b,{status:'completed',state:'finished',meta:{...b.meta,engine:next.state}});await fetchAll();return}
-    const round=1+Math.max(0,...prior.map(f=>f.round_no));
-    const items=next.fixtures.map((f,i)=>({...f,session_id:sel(),phase:'playoff',bracket_id:b.id,round_no:round,seq_no:i+1}));
-    // Persist the fixtures first so a refresh won't lose the drawn opponents.
-    await insertFixtures(items);
-    await patchBracket(b,{round_no:round,meta:{...b.meta,engine:next.state}});
-    await fetchAll();msg('No-bye playoff wave ready: '+items.length+' match(es)');
+    next=preparePlacementWave(engine,ids=>createPlayoffFixtures({
+     players:ids,allContenders:b.contenders,volunteers,skills,prior:fixturesFor(b)
+    }));
+    action='draw';
+    payload=next.fixtures.map((f,i)=>({seq_no:i+1,kind:f.kind,team_a:f.team_a,team_b:f.team_b,contenders:f.contenders}));
    }
+   const {data,error}=await db.rpc('cf_ranked_commit_step',{
+    p_bracket_id:b.id,p_expected_round:b.round_no,p_expected_engine:original,
+    p_next_engine:next.state,p_action:action,p_fixtures:payload
+   });
+   if(error)throw error;
+   await load();await fetchAll();
+   msg(action==='draw'?'New playoff fixtures ready':data?.status==='completed'?'Playoff placements finalized':'Playoff wave advanced');
   }catch(e){msg(e)}
+  finally{advancing=false}
  }
  function currentFixtures(){
   const active=cache.brackets.find(b=>b.status==='active');
