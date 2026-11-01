@@ -148,7 +148,7 @@ const cfStyle=document.createElement('style');cfStyle.textContent='.queue-grid{d
 const cfChannel=db.channel('courtflow-public').on('postgres_changes',{event:'*',schema:'public',table:'cf_matches'},()=>load()).on('postgres_changes',{event:'*',schema:'public',table:'cf_attendance'},()=>load()).on('postgres_changes',{event:'*',schema:'public',table:'cf_sessions'},()=>load()).subscribe();
 
 rankedApp=initRanked({db,state,load,notify:msg,escapeHTML:esc,playerName:findPlayer,dialogs});
-stage5=initStage5({db,state,load,notify:msg,escapeHTML:esc,playerName:findPlayer,getEvent:()=>eventWorkspace?.getEvent()});
+stage5=initStage5({db,state,load,notify:msg,escapeHTML:esc,playerName:findPlayer,getEvent:()=>eventWorkspace?.getEvent(),dialogs});
 courtBoard=initCourtBoard({db,state,load,notify:msg,escapeHTML:esc,playerName:findPlayer,rankedApp,getEvent:()=>eventWorkspace?.getEvent()});
 tournamentCenter=initTournamentCenter({state,escapeHTML:esc,playerName:findPlayer,rankedApp,stage5,courtBoard});
 eventOperations=initEventOperations({db,state,load,notify:msg,dialogs,getEvent:()=>eventWorkspace?.getEvent(),playerName:findPlayer,escapeHTML:esc});
