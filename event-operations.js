@@ -1,0 +1,13 @@
+export function initEventOperations({db,state,load,notify,dialogs,getEvent,playerName,escapeHTML}){
+const root=document.createElement('section');root.id='eventOperations';root.className='card';root.innerHTML='<h2>Event Settings</h2><div id="eoSummary"></div><div class="stack"><button id="eoEdit">Edit event</button><button class="secondary" id="eoArchive">Archive event</button><button class="secondary" id="eoReopen">Reopen / restore</button><button class="secondary" id="eoDelete">Delete empty event</button></div>';
+document.getElementById('adminPanel').append(root);
+const edit=root.querySelector('#eoEdit'),archive=root.querySelector('#eoArchive'),reopen=root.querySelector('#eoReopen'),del=root.querySelector('#eoDelete');
+const current=()=>state.sessions.find(s=>s.id===getEvent());
+async function act(action,values={}){const s=current();if(!s)return;const {error}=await db.rpc('cf_event_manage',{p_session_id:s.id,p_action:action,p_title:values.title||null,p_session_date:values.date||null,p_courts:values.courts?Number(values.courts):null,p_confirm_title:values.confirm||null});if(error){notify(error.message);return}await load();notify('Event '+action+' completed')}
+edit.onclick=async()=>{const s=current();if(!s)return;const v=await dialogs.form('Edit event',[{key:'title',label:'Event title',value:s.title,required:true},{key:'courts',label:'Number of courts',type:'number',value:String(s.courts),required:true}]);if(!v)return;const date=await dialogs.date(s.session_date);if(!date)return;await act('edit',{...v,date})};
+archive.onclick=async()=>{if(await dialogs.confirm('Close and archive this event? Its match history will remain available.','Archive event'))await act('archive')};
+reopen.onclick=async()=>{const s=current();if(s&&await dialogs.confirm('Reopen and restore this event?','Reopen event'))await act('reopen')};
+del.onclick=async()=>{const s=current();if(!s)return;const v=await dialogs.form('Delete empty event',[{key:'confirm',label:'Type event name exactly',required:true}], 'Events with match or Ranked history cannot be deleted. Archive those instead.');if(v&&v.confirm===s.title&&await dialogs.confirm('Permanently delete this empty event?','Final deletion confirmation'))await act('delete',v);else if(v&&v.confirm!==s.title)notify('Event name does not match')};
+function render(){const s=current();root.querySelector('#eoSummary').textContent=s?s.title+' · '+s.status+' · '+s.session_date+' · '+s.courts+' courts':'';reopen.disabled=!s||s.status==='active';archive.disabled=!s||s.status==='closed';edit.disabled=!s;del.disabled=!s}
+return {render};
+}
