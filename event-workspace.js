@@ -1,55 +1,57 @@
-export function initEventWorkspace({state,db,notify,escapeHTML,playerName,renderBase}){
- const $=id=>document.getElementById(id);
- const esc=escapeHTML;
- let eventId='',adminTab='overview',publicTab='courts';
- const adminRoot=$('adminPanel'),publicHome=$('home');
- const publicSections=['sessions','players','rankings','history'];
- const categories=[['overview','Control Center'],['courts','Courts & Scores'],['queue','Next Court'],['players','Players'],['checkin','Check-in'],['ranked','Ranked'],['settings','Event Setup']];
- const nav=document.createElement('div');nav.id='eventPublicNav';nav.innerHTML='<button class="secondary" id="eventBack">← Back to events</button><strong id="eventPublicTitle"></strong><div id="eventPublicTabs" class="ew-tabs"></div>';document.querySelector('main').insertBefore(nav,$('sessions'));
- const adminNav=document.createElement('div');adminNav.id='eventAdminNav';adminNav.innerHTML='<div class="ew-head"><strong id="eventAdminTitle">Select event</strong><button class="secondary" id="eventAdminBack">Change event</button></div><div id="eventAdminTabs" class="ew-tabs"></div>';adminRoot.insertBefore(adminNav,adminRoot.firstChild);
- const chooser=document.createElement('div');chooser.id='eventAdminChooser';chooser.className='card';chooser.innerHTML='<h2>Select event to manage</h2><div id="eventAdminChoices" class="ew-cards"></div><button class="secondary" id="eventCreate">Create new event</button>';adminRoot.insertBefore(chooser,adminNav);
- $('eventCreate').onclick=()=>{eventId='';const panels=Array.from(adminRoot.children);panels.forEach(el=>el.hidden=true);chooser.hidden=false;adminNav.hidden=true;const setup=panels.find(el=>el.querySelector?.('#sname'));if(setup){setup.hidden=false;setup.scrollIntoView({behavior:'smooth',block:'start'})}};
- const publicChoice=document.createElement('div');publicChoice.id='eventPublicChooser';publicChoice.innerHTML='<h2>Select an event</h2><div id="eventPublicChoices" class="ew-cards"></div>';publicHome.append(publicChoice);
- const style=document.createElement('style');style.textContent='#home>.hero,#home>.grid{display:none}#eventPublicChooser{padding:20px 0}#eventPublicChooser h2{font-size:clamp(24px,5vw,34px)}.ew-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:12px}.ew-event{background:#1b2635;border:1px solid #394557;border-radius:15px;padding:18px;display:block;text-align:left;color:#fff}.ew-event strong{display:block;margin-bottom:8px}.ew-tabs{display:flex;gap:7px;flex-wrap:wrap;margin:12px 0}.ew-tabs button{flex:0 0 auto}.ew-tabs button.on{background:#f3c925;color:#111}.ew-head{display:flex;align-items:center;justify-content:space-between;gap:12px}#eventAdminNav{position:sticky;top:72px;z-index:20;padding:10px;background:#101722;border-radius:12px}#eventPublicNav{display:none;align-items:center;gap:14px;flex-wrap:wrap;padding:12px 0}body.ew-event-mode #eventPublicNav{display:flex}body.ew-event-mode header .nav-tabs{display:none}body.ew-event-mode #eventPublicChooser{display:none}@media(max-width:790px){#eventAdminNav{top:105px}.ew-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}.ew-tabs button{font-size:11px;padding:9px 4px}}';document.head.append(style);
- const groups=()=>({
- overview:[$('tournamentCenter')],
- courts:[$('courtBoardAdmin')],
- queue:[$('eventQueuePanel')],
- players:[...adminRoot.querySelectorAll('#stage5tools')].concat([...adminRoot.querySelectorAll('.grid')].filter(el=>el.querySelector('#pname'))),
- checkin:[...adminRoot.querySelectorAll('#stage5tools')].concat([...adminRoot.querySelectorAll('.card')].filter(el=>el.querySelector('#aSession'))),
- ranked:[$('rPanel')],
- settings:[...adminRoot.querySelectorAll('.grid')].filter(el=>el.querySelector('#sname')) 
- });
- function setEvent(id){eventId=state.sessions.some(s=>s.id===id)?id:'';adminTab='overview';publicTab='courts';refresh();}
- function setTab(tab){adminTab=tab;refresh();}
- function publicRoute(tab){publicTab=tab;location.hash='#/'+({courts:'sessions',players:'players',rankings:'rankings',history:'history'}[tab]||'sessions');refresh();}
- $('eventBack').onclick=()=>{eventId='';location.hash='#/home';refresh()};
- $('eventAdminBack').onclick=()=>{eventId='';refresh()};
- function refresh(){
-  if(eventId&&!state.sessions.some(s=>s.id===eventId))eventId='';
-  const active=state.sessions.find(s=>s.id===eventId);
-  document.body.classList.toggle('ew-event-mode',!!active&&location.hash!=='#/admin');
-  const choices=state.sessions.map(s=>'<button class="ew-event" data-event="'+s.id+'"><strong>'+esc(s.title)+'</strong><span class="hint small">'+esc(s.session_date)+' · '+esc(s.mode)+' · '+s.courts+' court(s)</span></button>').join('');
-  $('eventPublicChoices').innerHTML=choices||'<p class="hint">No events available yet.</p>';
-  $('eventAdminChoices').innerHTML=choices||'<p class="hint">Create an event in Event Setup.</p>';
-  for(const parent of [$('eventPublicChoices'),$('eventAdminChoices')])parent.querySelectorAll('[data-event]').forEach(b=>b.onclick=()=>{setEvent(b.dataset.event);if(parent.id==='eventPublicChoices')location.hash='#/sessions'});
-  chooser.hidden=!!active;adminNav.hidden=!active;
-  $('eventPublicTitle').textContent=active?.title||'';
-  $('eventAdminTitle').textContent=active?.title||'';
-  $('eventAdminTabs').innerHTML=categories.map(([id,title])=>'<button class="'+(adminTab===id?'on':'secondary')+'" data-section="'+id+'">'+title+'</button>').join('');
-  $('eventAdminTabs').querySelectorAll('[data-section]').forEach(b=>b.onclick=()=>setTab(b.dataset.section));
-  $('eventPublicTabs').innerHTML=[['courts','Courts'],['players','Players'],['rankings','Standings'],['history','History']].map(([id,title])=>'<button class="'+(publicTab===id?'on':'secondary')+'" data-public="'+id+'">'+title+'</button>').join('');
-  $('eventPublicTabs').querySelectorAll('[data-public]').forEach(b=>b.onclick=()=>publicRoute(b.dataset.public));
-  const fixed=new Set([adminNav,chooser]);
-  const all=Array.from(adminRoot.children).filter(el=>!fixed.has(el));
-  const target=new Set(groups()[adminTab]?.filter(Boolean)||[]);
-  all.forEach(el=>{el.hidden=!active||!target.has(el)});const stage5=$('stage5tools');if(stage5&&!stage5.hidden){const check=adminTab==='checkin';for(const el of Array.from(stage5.children)){const isCheck=el.id==='stage5session'||el.id==='stage5checksearch'||el.id==='stage5checklist'||(el.tagName==='H3'&&el.textContent.includes('Check-in'))||el.textContent==='Session';el.hidden=check?!isCheck:isCheck}}
-  const selectIds=['aSession','stage5session','rSession','tcSession','courtBoardSession','courtBoardPublicSession'];
-  if(active)for(const id of selectIds){const el=$(id);if(el&&[...el.options].some(o=>o.value===eventId)&&el.value!==eventId){el.value=eventId;if(id==='rSession')el.dispatchEvent(new Event('change'))}}
-  const show=!!active&&location.hash!=='#/admin';const sessionsList=$('sessionsList');if(sessionsList)sessionsList.hidden=!!active;
-  publicSections.forEach(id=>{const el=$(id);if(el)el.hidden=!show||({sessions:'courts',players:'players',rankings:'rankings',history:'history'}[id]!==publicTab)});
-  publicHome.hidden=!!active;
- }
- function getEvent(){return eventId}
- return {refresh,getEvent,setEvent};
+export function initEventWorkspace({state,escapeHTML,onEventChange=()=>{}}){
+const $=id=>document.getElementById(id),admin=$('adminPanel'),home=$('home');
+let selected='',tab='overview',publicTab='courts',createMode=false;
+const cats=[['overview','Overview'],['courts','Courts'],['queue','Next Court'],['players','Players'],['checkin','Check-in'],['results','Results'],['ranked','Ranked'],['settings','Settings']];
+const header=document.createElement('div');header.id='ewAdminHeader';header.innerHTML='<div class="ew-identity"><strong id="ewAdminTitle">Event control</strong><button id="ewChange" class="secondary">Change event</button></div><div id="ewAdminNav"></div>';admin.prepend(header);
+const chooser=document.createElement('section');chooser.id='ewAdminChooser';chooser.className='card';chooser.innerHTML='<h2>Choose event to manage</h2><div id="ewAdminCards" class="ew-cards"></div><button id="ewCreate" class="secondary">+ Create Event</button>';header.before(chooser);
+const publicChooser=document.createElement('div');publicChooser.id='ewPublicChooser';publicChooser.innerHTML='<h1>Select an event</h1><p class="hint">Choose an open play to view its live courts and updates.</p><div id="ewPublicCards" class="ew-cards"></div>';home.append(publicChooser);
+const pubHead=document.createElement('div');pubHead.id='ewPublicHeader';pubHead.innerHTML='<div class="ew-identity"><button id="ewPublicBack" class="secondary">← Events</button><strong id="ewPublicName"></strong></div><div id="ewPublicNav"></div>';document.querySelector('main').insertBefore(pubHead,$('sessions'));
+const shell=document.createElement('div');shell.id='ewAdminPanes';admin.append(shell);
+const panes={};for(const [id] of cats){let p=document.createElement('div');p.id='ewPane-'+id;shell.append(p);panes[id]=p}
+const findCard=id=>$(id)?.closest('.card');
+const stage5=$('stage5tools'),stage5Check=stage5?.querySelector('#stage5checklist');
+function move(el,to){if(el)panes[to].append(el)}
+move($('tournamentCenter'),'overview');
+move($('courtBoardAdmin'),'courts');
+move($('eventQueuePanel'),'queue');
+move($('eventPlayerManager'),'checkin');
+move($('eventOperations'),'settings');
+move($('rPanel'),'ranked');
+const playerCard=findCard('pname'),setupCard=findCard('sname');
+move(playerCard,'players');
+if(stage5){move(stage5,'players');for(const id of ['stage5session','stage5checksearch','stage5checklist']){const el=$(id);if(el)el.hidden=true}let h=[...stage5.querySelectorAll('h3')].find(e=>e.textContent.includes('Check-in'));if(h)h.hidden=true}
+if(setupCard){const newCard=document.createElement('div');newCard.className='card';newCard.id='ewCreateCard';newCard.append(setupCard);chooser.append(newCard)}
+const correction=findCard('cfCorrectMatch');move(correction,'results');
+const older=[...admin.children].filter(x=>![header,chooser,shell].includes(x));for(const el of older){if(el.contains($('aSession'))||el.contains($('aMatch'))||el.contains($('cfQueue'))){el.hidden=true;el.dataset.legacyControl='true'}}
+const resultTitle=document.createElement('h2');resultTitle.textContent='Finished games · latest first';panes.results.prepend(resultTitle);
+const historyBox=document.createElement('div');historyBox.id='ewAdminResults';panes.results.append(historyBox);
+const styles=document.createElement('style');styles.textContent='#home>.hero,#home>.grid{display:none}#ewPublicChooser{padding:18px 0}.ew-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:12px}.ew-event-card{text-align:left;background:#1a2535;color:#fff;border:1px solid #39485d;padding:18px;border-radius:16px}.ew-event-card strong{display:block;font-size:17px;margin-bottom:7px}.ew-identity{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}.ew-identity strong{font-size:18px}.ew-nav{display:flex;gap:7px;margin:12px 0;flex-wrap:wrap}.ew-nav button{flex:0 0 auto}.ew-nav button.selected{background:#f3c925;color:#12171e}#ewAdminHeader{position:sticky;top:70px;z-index:20;background:#111a27;border:1px solid #344459;border-radius:17px;padding:12px;margin:10px 0 16px}#ewPublicHeader{display:none;margin-bottom:13px}body.ew-public-selected #ewPublicHeader{display:block}body.ew-public-selected header .nav-tabs{display:none}#ewAdminPanes>div[hidden]{display:none}#ewAdminChooser[hidden],#ewAdminHeader[hidden]{display:none}#ewAdminPanes .card{margin-bottom:12px}#ewCreateCard{margin-top:14px}#ewAdminResults .rank-row{gap:10px}#ewAdminPanes .card>.grid{max-width:100%}@media(max-width:780px){#ewAdminHeader{position:static}#ewAdminNav{position:fixed;bottom:0;left:0;right:0;background:#101824;border-top:1px solid #39475a;z-index:90;padding:7px max(6px,env(safe-area-inset-left)) calc(7px + env(safe-area-inset-bottom))}#ewAdminNav .ew-nav{margin:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px}#ewAdminNav button{min-width:0;padding:8px 3px;font-size:11px}body:has(#ewAdminHeader:not([hidden])) main{padding-bottom:125px}#ewPublicNav .ew-nav{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}#ewPublicNav button{padding:9px 3px;font-size:12px}}';document.head.append(styles);
+function choose(id,isAdmin){if(!state.sessions.some(x=>x.id===id))return;selected=id;tab='overview';publicTab='courts';createMode=false;render();onEventChange();if(!isAdmin)location.hash='#/sessions'}
+function list(){const available=state.sessions.filter(s=>!s.is_archived);return available.map(s=>'<button class="ew-event-card" data-id="'+s.id+'"><strong>'+escapeHTML(s.title)+'</strong><span class="hint small">'+escapeHTML(s.session_date)+' · '+s.courts+' courts · '+escapeHTML(s.status)+'</span></button>').join('')||'<p class="hint">No events yet.</p>'}
+function navigatePublic(next){publicTab=next;const hash={courts:'sessions',players:'players',results:'history',rankings:'rankings'}[next]||'sessions';location.hash='#/'+hash;render()}
+function render(){
+ if(selected&&!state.sessions.some(s=>s.id===selected))selected='';
+ const s=state.sessions.find(x=>x.id===selected),adminMode=location.hash==='#/admin';
+ $('ewAdminCards').innerHTML=list();$('ewPublicCards').innerHTML=list();
+ for(const [root,isAdmin] of [[$('ewAdminCards'),true],[$('ewPublicCards'),false]])root.querySelectorAll('[data-id]').forEach(btn=>btn.onclick=()=>choose(btn.dataset.id,isAdmin));
+ chooser.hidden=!!s&&!createMode;header.hidden=!s||createMode;
+ $('ewAdminTitle').textContent=s?s.title+' · '+s.status:'Event control';$('ewPublicName').textContent=s?.title||'';
+ for(const [id,pane] of Object.entries(panes))pane.hidden=!s||id!==tab;
+ const nav=$('ewAdminNav');nav.innerHTML='<div class="ew-nav">'+cats.map(([id,title])=>'<button data-admin-tab="'+id+'" class="'+(tab===id?'selected':'secondary')+'">'+title+'</button>').join('')+'</div>';
+ nav.querySelectorAll('[data-admin-tab]').forEach(btn=>btn.onclick=()=>{tab=btn.dataset.adminTab;render()});
+ $('ewPublicNav').innerHTML='<div class="ew-nav">'+[['courts','Courts'],['players','Players'],['results','Results'],['rankings','Rankings']].map(([id,title])=>'<button data-public-tab="'+id+'" class="'+(publicTab===id?'selected':'secondary')+'">'+title+'</button>').join('')+'</div>';
+ $('ewPublicNav').querySelectorAll('[data-public-tab]').forEach(btn=>btn.onclick=()=>navigatePublic(btn.dataset.publicTab));
+ const showing=!!s&&!adminMode;document.body.classList.toggle('ew-public-selected',showing);
+ const hashes={courts:'sessions',players:'players',results:'history',rankings:'rankings'};
+ for(const [id,route] of Object.entries(hashes))$(route).hidden=!showing||publicTab!==id;
+ $('sessionsList').hidden=!!s;
+ if(showing)home.hidden=true;else if(!adminMode)home.hidden=false;
+ for(const id of ['aSession','stage5session','rSession','tcSession','courtBoardSession','courtBoardPublicSession']){const input=$(id);if(s&&input&&[...input.options].some(o=>o.value===s.id)&&input.value!==s.id){input.value=s.id;if(id==='rSession')input.dispatchEvent(new Event('change'))}}
+ if(s){const ms=state.matches.filter(m=>m.session_id===s.id&&m.status==='completed').sort((a,b)=>new Date(b.ended_at)-new Date(a.ended_at));historyBox.innerHTML=ms.map(m=>'<div class="rank-row"><span>Court '+m.court_number+' · '+new Date(m.ended_at).toLocaleString()+'</span><strong>'+m.score_a+' – '+m.score_b+'</strong></div>').join('')||'<p class="hint small">No finished games yet.</p>'}
+}
+$('ewChange').onclick=()=>{selected='';createMode=false;render();onEventChange()};
+$('ewPublicBack').onclick=()=>{selected='';location.hash='#/home';render();onEventChange()};
+$('ewCreate').onclick=()=>{createMode=true;chooser.hidden=false;header.hidden=true;$('ewCreateCard').hidden=false};
+$('ewCreateCard').hidden=true;
+return {refresh:render,getEvent:()=>selected,setEvent:id=>choose(id,true),currentTab:()=>tab};
 }
