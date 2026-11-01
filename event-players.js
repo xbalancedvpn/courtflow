@@ -1,4 +1,5 @@
 export function initEventPlayers({db,state,load,notify,dialogs,getEvent,escapeHTML,playerName}){
+const skillCode=['','BEG','NOV','ILO','IHI','ADV','PRO'];
 const root=document.createElement('section');root.id='eventPlayerManager';root.className='card';
 root.innerHTML='<h2>Check-in & Check-out</h2><p class="hint small">Checked-in players are shown first. Checked-out players stay in the directory for future check-in.</p><input id="epSearch" placeholder="Search players"><div id="epList"></div><p class="hint small">Edit running match lineups directly in the Courts tab.</p>';
 document.getElementById('adminPanel').append(root);
@@ -13,7 +14,7 @@ function render(){
  const busy=new Set(state.matches.filter(m=>m.session_id===sid&&m.status==='playing').flatMap(m=>state.matchplayers.filter(p=>p.match_id===m.id).map(p=>p.player_id)));
  const q=search.value.trim().toLowerCase(),all=state.players.filter(p=>p.active&&p.name.toLowerCase().includes(q));
  const present=all.filter(p=>checked.has(p.id)),absent=all.filter(p=>!checked.has(p.id));
- const row=p=>'<div class="rank-row"><strong>'+escapeHTML(p.name)+'</strong><span class="hint small">'+(busy.has(p.id)?'PLAYING':checked.has(p.id)?'CHECKED IN':'CHECKED OUT')+'</span><button data-toggle="'+p.id+'" class="secondary">'+(checked.has(p.id)?'Check out':'Check in')+'</button></div>';
+ const row=p=>'<div class="rank-row"><strong>'+escapeHTML(p.name)+'</strong><span class="hint small">'+(skillCode[Number(p.skill)]||'---')+'</span><span class="hint small">'+(busy.has(p.id)?'PLAYING':checked.has(p.id)?'CHECKED IN':'CHECKED OUT')+'</span><button data-toggle="'+p.id+'" class="secondary">'+(checked.has(p.id)?'Check out':'Check in')+'</button></div>';
  root.querySelector('#epList').innerHTML='<h3>Checked In ('+present.length+')</h3>'+(present.map(row).join('')||'<p class="hint small">No players.</p>')+'<h3>Checked Out ('+absent.length+')</h3>'+(absent.map(row).join('')||'<p class="hint small">No players.</p>');
  root.querySelectorAll('[data-toggle]').forEach(b=>b.onclick=()=>checked.has(b.dataset.toggle)?checkout(b.dataset.toggle):checkin(b.dataset.toggle));
 }
