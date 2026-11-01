@@ -18,6 +18,7 @@ move($('eventQueuePanel'),'queue');
 const legacyQueue=$('cfQueue')?.closest('.card');if(legacyQueue){legacyQueue.hidden=true;legacyQueue.dataset.legacyControl='true'}
 move($('eventPlayerManager'),'checkin');
 move($('eventOperations'),'settings');
+const lifecycle=$('eoStart')?.parentElement;if(lifecycle){const panel=document.createElement('section');panel.className='card';panel.id='ewLifecycle';panel.innerHTML='<h3>Session Controls</h3><p class="hint small">Start the event to publish live matchups, and end it after all courts finish.</p>';panel.append(lifecycle);panes.overview.prepend(panel)}
 move($('eventFinance'),'finance');
 move($('rPanel'),'ranked');
 const playerCard=findCard('pname'),setupCard=findCard('sname');
