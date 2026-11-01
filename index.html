@@ -154,7 +154,7 @@ tournamentCenter=initTournamentCenter({state,escapeHTML:esc,playerName:findPlaye
 eventOperations=initEventOperations({db,state,load,notify:msg,dialogs,getEvent:()=>eventWorkspace?.getEvent(),playerName:findPlayer,escapeHTML:esc});
 eventPlayers=initEventPlayers({db,state,load,notify:msg,dialogs,getEvent:()=>eventWorkspace?.getEvent(),playerName:findPlayer,escapeHTML:esc});
 eventWorkspace=initEventWorkspace({state,escapeHTML:esc,onEventChange:()=>load()});
-eventQueue=initEventQueue({db,state,load,notify:msg,escapeHTML:esc,playerName:findPlayer,getEvent:eventWorkspace.getEvent});
+eventQueue=initEventQueue({db,state,load,notify:msg,escapeHTML:esc,playerName:findPlayer,getEvent:eventWorkspace.getEvent,dialogs});
 window.addEventListener('hashchange',()=>eventWorkspace.refresh());
 route();await auth();await load();setInterval(load,20000);
 </script></body></html>
