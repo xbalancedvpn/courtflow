@@ -1,5 +1,5 @@
 import {buildCourtSnapshot} from './court-board-core.js';
-export function initCourtBoard({db,state,load,notify,escapeHTML,playerName,rankedApp,getEvent=()=>null}){
+export function initCourtBoard({db,state,load,notify,escapeHTML,playerName,rankedApp,getEvent=()=>null,dialogs}){
  const $=id=>document.getElementById(id),drafts=new Map();
  let fixtures=[],brackets=[],fetching=false,selected='';
  const name=id=>escapeHTML(playerName(id));
@@ -54,7 +54,7 @@ export function initCourtBoard({db,state,load,notify,escapeHTML,playerName,ranke
   if(!Number.isInteger(a)||!Number.isInteger(b)||a<0||b<0||a>99||b>99||a===b)return notify('Scores must be different integers from 0 to 99');
   const winningTeam=a>b?1:2;
   const winner=state.matchplayers.filter(p=>p.match_id===id&&p.team===winningTeam).map(p=>playerName(p.player_id)).join(' + ');
-  if(!window.confirm('Confirm final score '+a+'–'+b+'?\\nWinner: '+winner+'\\n\\nSave this result?'))return;
+  if(!await dialogs.confirm('Final score '+a+'–'+b+'. Winner: '+winner+'. Save this result?','Confirm court result'))return;
   try{const {error}=await db.rpc('cf_set_match_result',{p_match_id:id,p_score_a:a,p_score_b:b,p_reason:null});if(error)throw error;drafts.delete(key(id,'a'));drafts.delete(key(id,'b'));await load();await refresh();notify('Result saved and court is available')}catch(e){notify(e.message||String(e))}
  }
  async function refresh(){
