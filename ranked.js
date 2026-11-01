@@ -1,7 +1,7 @@
 import {makeRegularRound,createPlayoffFixtures} from './ranked-core.js';
 import {newPlacementState,preparePlacementWave,settlePlacementWave} from './ranked-playoff-engine.js';
 // CourtFlow Ranked Four Games v1 - no points-based ranking
-export function initRanked({db,state,load,notify,escapeHTML,playerName}){
+export function initRanked({db,state,load,notify,escapeHTML,playerName,dialogs}){
  const $=id=>document.getElementById(id);
  const rand=arr=>{const a=[...arr];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
  const cache={roster:[],fixtures:[],brackets:[],awards:[],support:[]};
@@ -50,7 +50,7 @@ export function initRanked({db,state,load,notify,escapeHTML,playerName}){
    if(!Number.isInteger(a)||!Number.isInteger(b)||a===b||a<0||b<0||a>99||b>99)throw Error('Enter different valid scores (0–99)');
    const winner=a>b?f.team_a:f.team_b;
    const summary=winner.map(id=>playerName(id)).join(' + ');
-   if(!window.confirm('Confirm final score '+a+'–'+b+'?\nWinner: '+summary+'\n\nThis result updates the standings.'))return;
+   if(!await dialogs.confirm('Final score '+a+'–'+b+'. Winner: '+summary+'. This will update standings.','Confirm final score'))return;
    const {error}=await db.rpc('cf_set_match_result',{p_match_id:m.id,p_score_a:a,p_score_b:b,p_reason:null});
    if(error)throw error;
    scoreDraft.delete(id);
