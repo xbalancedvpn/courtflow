@@ -1,0 +1,82 @@
+
+/* CourtFlow Midnight Arena — public-only visual layer */
+:root{--arena-gold:#f4c74b;--arena-ink:#090c12;--arena-muted:#a4aeba}
+body.arena-public{background:radial-gradient(ellipse 68% 34% at 90% 3%,rgba(211,153,38,.12),transparent 76%),radial-gradient(ellipse 50% 25% at 2% 42%,rgba(41,60,77,.2),transparent 80%),linear-gradient(180deg,#090c11 0%,#0d121a 52%,#080c12 100%);background-attachment:fixed;color:#f5f6f7;overflow-x:hidden}
+body.arena-public:before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.14;background-image:linear-gradient(rgba(194,204,219,.12) 1px,transparent 1px),linear-gradient(90deg,rgba(194,204,219,.10) 1px,transparent 1px);background-size:68px 68px;mask-image:linear-gradient(110deg,transparent 8%,#000 90%)}
+body.arena-public main{position:relative;z-index:1;max-width:1190px;padding:18px clamp(14px,3vw,30px) 90px}
+body.arena-public header.site-header{background:rgba(10,14,20,.92);border-bottom:1px solid rgba(215,174,76,.19);box-shadow:0 8px 32px #03060966;backdrop-filter:blur(18px)}
+body.arena-public .brand-label{letter-spacing:-.065em;font-size:1.12em}
+body.arena-public .brand-icon{border-color:#cba74288;box-shadow:0 0 18px #d2a34122}
+body.arena-public .admin-btn{background:#181e27;color:#e4e7ec;border:1px solid #414851}
+body.arena-public .admin-btn:hover{border-color:var(--arena-gold)}
+#arenaLanding{display:grid;grid-template-columns:minmax(0,1.08fr) minmax(0,.92fr);gap:clamp(18px,4vw,48px);align-items:center;min-height:390px;padding:clamp(26px,4vw,54px) 0 44px;position:relative}
+#arenaLanding[hidden]{display:none!important}
+.arena-kicker,.arena-overline{display:flex;align-items:center;gap:12px;font-size:10px;font-weight:850;letter-spacing:.25em;color:#efc967}
+.arena-kicker-dot{height:7px;width:7px;border-radius:50%;background:var(--arena-gold);box-shadow:0 0 0 4px #eab64d22,0 0 18px #f4c74baa}
+.arena-kicker-dash{width:24px;height:1px;background:#e5c57a66}
+#arenaLanding h1{font-size:clamp(48px,7.6vw,94px);line-height:.99;letter-spacing:-.075em;font-weight:900;margin:22px 0}
+#arenaLanding h1 em{font-style:normal;background:linear-gradient(110deg,#f6d47b,#c99527);background-clip:text;color:transparent}
+.arena-lead{max-width:460px;color:#aeb6bf;line-height:1.7;font-size:clamp(14px,1.5vw,16px)}
+.arena-landing-actions{display:flex;align-items:center;gap:22px;flex-wrap:wrap;margin:27px 0}
+body.arena-public button.arena-primary-action{border-radius:12px;padding:15px 20px;background:linear-gradient(135deg,#f4cf69,#dfaa35);color:#15140f;box-shadow:0 9px 27px #e7af3f25;display:flex;gap:28px;align-items:center}
+.arena-quiet-note{display:flex;align-items:center;gap:10px;font-size:10px;letter-spacing:.16em;color:#929dab;font-weight:700}
+.arena-quiet-line{width:22px;height:1px;background:#8d98a7}
+.arena-feature-strip{display:flex;flex-wrap:wrap;gap:16px 25px;color:#aeb6be;font-size:12px}
+.arena-feature-strip>span{display:flex;align-items:center;gap:8px}
+.arena-feature-light{height:5px;width:5px;background:#c7a550;border-radius:50%}
+.arena-artwork{min-height:330px;position:relative;overflow:hidden;border-radius:23px;background:radial-gradient(ellipse at 66% 40%,#51442447,transparent 47%),linear-gradient(138deg,#18202b,#101720 54%,#0b1017);border:1px solid #9f824444;box-shadow:0 30px 90px #0007,inset 0 0 60px #161c24}
+.arena-artwork:before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(135deg,transparent 0 75px,#b2a06d08 76px 77px);pointer-events:none}
+.arena-artwork-halo{position:absolute;width:300px;height:300px;left:50%;top:46%;transform:translate(-50%,-50%);background:radial-gradient(circle,#e2ba4931,transparent 67%);filter:blur(15px)}
+.arena-court-diagram{position:absolute;top:50%;left:50%;width:68%;max-width:340px;aspect-ratio:2/1;transform:translate(-50%,-50%) perspective(600px) rotateX(14deg) rotateZ(-16deg);border:2px solid #d9be69;box-shadow:0 0 24px #caa33b4a,inset 0 0 22px #d0a84624,0 23px 36px #0008}
+.arena-court-diagram:before{content:"";position:absolute;inset:0;border-top:2px solid #d9be69;top:50%}
+.arena-court-net{position:absolute;z-index:2;left:50%;top:-12%;height:124%;border-left:2px solid #f1d98b;box-shadow:0 0 14px #e7bc56}
+.arena-court-kitchen{position:absolute;top:0;bottom:0;width:20%;border:2px solid #d9be69}
+.arena-kitchen-left{left:30%}.arena-kitchen-right{right:30%}
+.arena-artwork-top,.arena-artwork-bottom{position:absolute;left:20px;right:20px;display:flex;justify-content:space-between;align-items:center;color:#c8c5b8;font-size:10px;letter-spacing:.17em;font-weight:700}
+.arena-artwork-top{top:22px;justify-content:flex-start;gap:10px}.arena-artwork-bottom{bottom:18px}.arena-artwork-bottom small{font-size:9px;color:#838d98}
+.arena-lamp{height:7px;width:7px;background:#e8c15f;border-radius:50%}
+.arena-artwork-divider{display:inline-block;height:11px;width:1px;background:#edc86d;margin:0 9px;vertical-align:middle}
+body.arena-public #ewPublicChooser{padding:32px 0 22px}
+body.arena-public #ewPublicChooser>h1,body.arena-public #ewPublicChooser>p.hint{display:none}
+.arena-event-directory-head{display:flex;align-items:end;justify-content:space-between;gap:18px;margin-bottom:18px}
+.arena-event-directory-head h2{font-size:clamp(27px,4vw,39px);letter-spacing:-.055em;margin:7px 0 0}
+.arena-gold-stop{color:#edbe4d}
+.arena-event-directory-head p{max-width:220px;color:#9faab8;font-size:12px;line-height:1.5}
+body.arena-public .ew-cards{gap:14px}
+body.arena-public .ew-event-card{position:relative;overflow:hidden;min-height:146px;padding:22px;border:1px solid #bc9a4449;border-radius:17px;background:radial-gradient(circle at 90% 10%,#d9ae3025,transparent 40%),linear-gradient(140deg,#1b2430,#111821);transition:border-color .2s,transform .2s,box-shadow .2s;text-align:left}
+body.arena-public .ew-event-card:after{content:"↗";position:absolute;top:18px;right:20px;font-size:19px;color:#e7be5e}
+body.arena-public .ew-event-card:hover{transform:translateY(-3px);border-color:#e4bb67;box-shadow:0 16px 30px #0006}
+body.arena-public .ew-event-card strong{font-size:20px;max-width:90%;line-height:1.3;letter-spacing:-.025em}
+body.arena-public .ew-event-card .hint{display:block;margin-top:18px;color:#b9bec8}
+body.arena-live-view #ewPublicHeader{display:block;position:relative}
+body.arena-live-view #ewPublicHeader>.ew-identity{margin:6px 0 15px}
+body.arena-live-view #ewPublicHeader>.ew-identity strong{display:none}
+body.arena-public #ewPublicBack{background:#171d26;border:1px solid #49505b;color:#d9dde3;padding:9px 13px}
+#arenaEventHero{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(210px,.6fr);align-items:center;gap:20px;min-height:260px;padding:27px clamp(22px,4vw,42px);border:1px solid #c7a45260;border-radius:22px;background:radial-gradient(ellipse at 82% 30%,#bb8b2036,transparent 48%),linear-gradient(140deg,#1a2330,#101721 62%,#111820);overflow:hidden;box-shadow:0 18px 47px #0004}
+#arenaEventTitle{font-size:clamp(30px,4.5vw,57px);line-height:1.06;letter-spacing:-.065em;margin:17px 0 9px;overflow-wrap:anywhere}
+.arena-event-detail{display:flex;align-items:center;flex-wrap:wrap;gap:10px;color:#adb8c2;font-size:13px}.arena-detail-dot{width:4px;height:4px;border-radius:50%;background:#d2ac52}
+.arena-event-metrics{display:flex;flex-wrap:wrap;gap:12px 25px;margin-top:25px}
+.arena-event-metrics>div{display:flex;flex-direction:column;gap:4px}
+.arena-event-metrics strong{font-size:clamp(24px,3vw,33px);font-weight:850;color:#f6d67e;line-height:1}
+.arena-event-metrics span{font-size:9px;letter-spacing:.12em;color:#a5afba}
+.arena-event-visual .arena-artwork{min-height:206px;border:0;background:transparent;box-shadow:none}
+.arena-event-visual .arena-artwork-top,.arena-event-visual .arena-artwork-bottom{display:none}
+body.arena-public #ewPublicNav .ew-nav{display:flex;gap:7px;padding:6px;border:1px solid #343e48;border-radius:14px;background:#101721;margin:16px 0 20px;overflow:auto}
+body.arena-public #ewPublicNav button{flex:1;min-width:88px;padding:12px;border-radius:9px;background:transparent;color:#a9b5c0;font-weight:750}
+body.arena-public #ewPublicNav button.selected{background:#dfb64c;color:#141414}
+body.arena-public #sessions>.card,body.arena-public #eqPublic,body.arena-public #playersList>.card,body.arena-public #historyList>.card,body.arena-public #rankedPublic>.card{background:linear-gradient(145deg,#1b2330,#131a24);border:1px solid #3d4654;border-radius:18px;box-shadow:0 10px 27px #0003}
+body.arena-public #sessions h2,body.arena-public #players>h2,body.arena-public #rankings>h2,body.arena-public #history>h2{letter-spacing:-.035em}
+body.arena-public .court-grid{gap:13px}
+body.arena-public .court-tile{position:relative;border:1px solid #414b58;border-radius:17px;padding:17px;background:linear-gradient(160deg,#202b3a,#141c27);box-shadow:0 12px 24px #0002;overflow:hidden}
+body.arena-public .court-tile.playing{border-color:#d5af57;box-shadow:0 0 0 1px #c99d3022,0 15px 29px #0005}
+body.arena-public .court-tile.playing:before{content:"";position:absolute;left:0;top:0;width:4px;height:100%;background:linear-gradient(#fff2a3,#dba635)}
+body.arena-public .court-status.playing{font-weight:850;color:#f5d071}
+body.arena-public .court-tile .teams{gap:12px;font-size:13px}
+body.arena-public .court-tile .teams b{color:#e6ba59}
+body.arena-public .court-summary .pill{background:#28323d;color:#f0c865}
+body.arena-public #eqPublic .rank-match{border-color:#5b5138;background:#1b2330;border-radius:12px}
+body.arena-public #eqWaiting .rank-row{border-radius:9px;padding:10px 12px;background:#202937;margin:6px 0}
+body.arena-public #message{color:#efc966}
+@media(max-width:800px){#arenaLanding{grid-template-columns:1fr;gap:18px;padding:26px 0 30px}.arena-artwork{min-height:220px}#arenaLanding h1{font-size:clamp(48px,10vw,76px)}#arenaEventHero{grid-template-columns:1fr}.arena-event-visual{display:none}}
+@media(max-width:600px){body.arena-public main{padding:12px 13px 88px}#arenaLanding{padding:23px 0 15px}.arena-landing-actions{margin:23px 0}.arena-artwork{min-height:190px}.arena-feature-strip{gap:10px 15px;font-size:11px}.arena-event-directory-head{align-items:start;flex-direction:column;gap:4px}.arena-event-directory-head p{max-width:none;margin:0}.arena-event-metrics{gap:13px 18px}#arenaEventHero{padding:22px 18px;min-height:225px}.arena-event-metrics span{font-size:8px}body.arena-public #ewPublicNav .ew-nav{gap:2px;margin:11px 0 14px}body.arena-public #ewPublicNav button{font-size:11px;min-width:0;padding:11px 5px}body.arena-public .ew-event-card{min-height:125px!important}body.arena-public .court-tile{padding:14px}}
+@media(prefers-reduced-motion:reduce){body.arena-public .ew-event-card{transition:none!important}}
