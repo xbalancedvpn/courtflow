@@ -5,22 +5,23 @@ export function initCourtBoard({db,state,load,notify,escapeHTML,playerName,ranke
  const name=id=>escapeHTML(playerName(id));
  const latest=()=>state.sessions.find(s=>s.id===selected);
  const getSnapshot=()=>{const s=latest();return s?buildCourtSnapshot({session:s,matches:state.matches,matchplayers:state.matchplayers,fixtures,brackets}):null};
- const css=document.createElement('style');css.textContent='.court-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:12px}.court-tile{border:1px solid #354254;background:#161f2d;border-radius:16px;padding:15px;min-width:0}.court-tile.playing{border-color:#a68b25}.court-tile .teams{display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center;overflow-wrap:anywhere;font-size:13px;padding:12px 0}.court-tile .teams b{color:#f3c925;font-size:11px}.court-status{font-size:12px;color:#f3c925}.court-tile input{min-width:0}.court-actions{display:flex;gap:7px}.court-actions>*{flex:1;min-width:0}.court-status.available{color:#8fd9b2}.court-status.playing{color:#f3c925}.court-summary{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}.court-summary .pill{white-space:nowrap}.court-heading{display:flex;align-items:center;justify-content:space-between;gap:8px}';
+ const css=document.createElement('style');css.textContent='.court-meta{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;font-size:13px;width:100%;margin:8px 0}.court-meta>div{background:#202a39;padding:10px;border-radius:10px;min-width:0}.court-meta small{display:block;color:#a9b4c6;font-size:11px}.court-meta strong{display:block;overflow-wrap:anywhere;font-size:13px}.court-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:12px}.court-tile{border:1px solid #354254;background:#161f2d;border-radius:16px;padding:15px;min-width:0}.court-tile.playing{border-color:#a68b25}.court-tile .teams{display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center;overflow-wrap:anywhere;font-size:13px;padding:12px 0}.court-tile .teams b{color:#f3c925;font-size:11px}.court-status{font-size:12px;color:#f3c925}.court-tile input{min-width:0}.court-actions{display:flex;gap:7px}.court-actions>*{flex:1;min-width:0}.court-status.available{color:#8fd9b2}.court-status.playing{color:#f3c925}.court-summary{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}.court-summary .pill{white-space:nowrap}.court-heading{display:flex;align-items:center;justify-content:space-between;gap:8px}';
  document.head.append(css);
- const panel=document.createElement('div');panel.className='card';panel.id='courtBoardAdmin';panel.innerHTML='<h2>Live Court Control</h2><label>Active session<select id="courtBoardSession"></select></label><div id="courtBoardSummary"></div><div id="courtBoardAdminGrid" class="court-grid"></div>';
+ const panel=document.createElement('div');panel.className='card';panel.id='courtBoardAdmin';panel.innerHTML='<h2>Live Court Control</h2><div id="courtEventDetails" class="court-summary"></div><label hidden>Active session<select id="courtBoardSession"></select></label><div id="courtBoardSummary"></div><div id="courtBoardAdminGrid" class="court-grid"></div>';
  $('adminPanel').insertBefore(panel,$('adminPanel').firstChild);
  $('sessions').insertAdjacentHTML('afterbegin','<div class="card"><h2>Live Court Board</h2><label>Session<select id="courtBoardPublicSession"></select></label><div id="courtBoardPublicSummary"></div><div id="courtBoardPublicGrid" class="court-grid"></div></div>');
  const choosePublic=$('courtBoardPublicSession'),chooseAdmin=$('courtBoardSession');const forcedEvent=()=>getEvent();
  const key=(id,side)=>id+':'+side;
  function render(){
-  const list=state.sessions,old=selected,forced=getEvent();if(forced&&list.some(s=>s.id===forced))selected=forced;
-  if(!list.some(s=>s.id===old))selected=list.find(s=>s.status==='active')?.id||list[0]?.id||'';
+  const list=state.sessions,forced=getEvent();if(forced&&list.some(s=>s.id===forced))selected=forced;
+  else if(!list.some(s=>s.id===selected))selected=list.find(s=>s.status==='active')?.id||list[0]?.id||'';
   for(const control of [choosePublic,chooseAdmin]){
    const retain=forced||control.value||selected;
    control.innerHTML='<option value="">Choose session</option>'+list.map(s=>'<option value="'+s.id+'">'+escapeHTML(s.title)+'</option>').join('');
    control.value=list.some(s=>s.id===retain)?retain:selected;
   }
-  choosePublic.parentElement.hidden=!!getEvent();chooseAdmin.parentElement.hidden=!!getEvent();
+  choosePublic.parentElement.hidden=!!getEvent();chooseAdmin.parentElement.hidden=true;
+  const ev=latest();if(ev){const count=state.attendance.filter(a=>a.session_id===ev.id).length,checked=state.attendance.filter(a=>a.session_id===ev.id&&a.checked_in&&!a.paused).length;const fee=Number(ev.fee||0);$('courtEventDetails').innerHTML='<div class="court-meta"><div><small>Name</small><strong>'+escapeHTML(ev.title)+'</strong></div><div><small>Location</small><strong>'+escapeHTML(ev.location||'Not set')+'</strong></div><div><small>Courts</small><strong>'+ev.courts+'</strong></div><div><small>Players</small><strong>'+checked+' / '+count+'</strong></div><div><small>Fee</small><strong>'+(fee?'₱'+fee.toLocaleString('en-PH'):'Free')+'</strong></div></div>'}
   const snap=getSnapshot();
   const summary=snap?'<div class="court-summary"><span class="pill">'+escapeHTML(snap.stageLabel)+'</span><span class="pill">'+snap.playing+' playing</span><span class="pill">'+snap.available+' available</span><span class="pill">'+snap.pending.length+' waiting</span></div>':'<p class="hint small">Choose a session.</p>';
   $('courtBoardSummary').innerHTML=summary;$('courtBoardPublicSummary').innerHTML=summary;
