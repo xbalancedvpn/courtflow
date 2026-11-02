@@ -75,6 +75,9 @@ body.ew-public-selected #ewPublicHeader{display:block}
 .ew-drawer-footer{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:25px;padding-top:16px;border-top:1px solid #33404f}
 .ew-drawer-footer button{min-width:0}
 body.ew-menu-open{overflow:hidden}
+body.ew-menu-open #ewAdminHeader{z-index:110}
+body.ew-menu-open #ewAdminNav{z-index:120}
+body.ew-menu-open .ew-menu-backdrop{z-index:99}
 #ewAdminPanes>div{max-width:1100px;margin:0 auto}
 #ewAdminPanes>div>.card{width:100%;max-width:none}
 #ewAdminPanes .card h2{letter-spacing:-.035em}
