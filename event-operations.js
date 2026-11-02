@@ -39,9 +39,27 @@ end.onclick=async()=>{
 };
 async function act(action,values={}){const s=current();if(!s)return;const {error}=await db.rpc('cf_event_manage',{p_session_id:s.id,p_action:action,p_title:values.title||null,p_session_date:values.date||null,p_courts:values.courts?Number(values.courts):null,p_confirm_title:values.confirm||null});if(error){notify(error.message);return}if(action==='edit'){const {error:e}=await db.from('cf_sessions').update({location:values.location||'',fee:Number(values.fee||0)}).eq('id',s.id);if(e){notify(e.message);return}}await load();notify('Event '+action+' completed')}
 edit.onclick=async()=>{const s=current();if(!s)return;const v=await dialogs.form('Edit event',[{key:'title',label:'Event title',value:s.title,required:true},{key:'location',label:'Location',value:s.location||''},{key:'fee',label:'Event fee (PHP)',type:'number',value:String(s.fee||0)},{key:'courts',label:'Number of courts',type:'number',value:String(s.courts),required:true}]);if(!v)return;const date=await dialogs.date(s.session_date);if(!date)return;await act('edit',{...v,date})};
-archive.onclick=async()=>{if(await dialogs.confirm('Close and archive this event? Its match history will remain available.','Archive event'))await act('archive')};
+let archiving=false;
+archive.onclick=async()=>{
+ const s=current();if(!s||archiving||s.status!=='closed'||s.is_archived)return;
+ const count=state.attendance.filter(a=>a.session_id===s.id&&a.checked_in).length;
+ if(!await dialogs.confirm('Archive '+s.title+' and automatically check out '+count+' checked-in player(s)? Scores, match history and attendance records will be preserved. The session will be marked Archived.','Archive Session',{actionLabel:'Archive & Check Out'}))return;
+ archiving=true;archive.disabled=true;
+ try{
+  const {data,error}=await db.rpc('cf_event_manage',{p_session_id:s.id,p_action:'archive'});
+  if(error)throw error;
+  const {data:verified,error:verificationError}=await db.from('cf_sessions').select('status,is_archived').eq('id',s.id).single();
+  if(verificationError)throw verificationError;
+  const {count:remaining,error:attendanceError}=await db.from('cf_attendance').select('player_id',{count:'exact',head:true}).eq('session_id',s.id).eq('checked_in',true);
+  if(attendanceError)throw attendanceError;
+  if(!verified?.is_archived||verified?.status!=='closed'||remaining!==0)throw Error('Archive verification failed; refresh event status.');
+  await load();
+  notify('Session archived · '+(data?.checked_out??count)+' player(s) checked out');
+ }catch(e){notify(e.message||'Unable to archive session')}
+ finally{archiving=false;render()}
+};
 reopen.onclick=async()=>{const s=current();if(s&&await dialogs.confirm('Reopen and restore this event?','Reopen event'))await act('reopen')};
 del.onclick=async()=>{const s=current();if(!s)return;const v=await dialogs.form('Delete Event',[{key:'confirm',label:'Type DELETE to confirm',placeholder:'DELETE',required:true}],'This permanently deletes only events without match or Ranked history. Otherwise, use Archive.',{submitLabel:'Delete Event',danger:true,requirePhrase:{key:'confirm',value:'DELETE'}});if(!v)return;if(!await dialogs.confirm('Permanently delete this empty event? This cannot be undone.','Final confirmation',{actionLabel:'Delete Event',danger:true}))return;await act('delete',{confirm:s.title})};
-function render(){const s=current();root.querySelector('#eoSummary').textContent=s?s.title+' · '+s.status+' · '+s.session_date+' · '+s.courts+' courts':'';start.disabled=!s||s.status!=='upcoming';end.disabled=!s||s.status!=='active';reopen.disabled=!s||s.status==='active';archive.disabled=!s||s.status==='closed';edit.disabled=!s;del.disabled=!s}
+function render(){const s=current();root.querySelector('#eoSummary').textContent=s?s.title+' · '+(s.is_archived?'archived':s.status)+' · '+s.session_date+' · '+s.courts+' courts':'';start.disabled=!s||s.status!=='upcoming';end.disabled=!s||s.status!=='active';reopen.disabled=!s||s.status==='active';archive.textContent=s?.is_archived?'Archived':'Archive Session';archive.hidden=!s||s.status!=='closed'||!!s.is_archived;archive.disabled=!s||s.status!=='closed'||!!s.is_archived||archiving;edit.disabled=!s;del.disabled=!s}
 return {render};
 }
