@@ -194,6 +194,10 @@ eventFinance=initEventFinance({db,state,load,notify:msg,dialogs,getEvent:()=>eve
 eventOperations=initEventOperations({db,state,load,notify:msg,dialogs,getEvent:()=>eventWorkspace?.getEvent(),playerName:findPlayer,escapeHTML:esc});
 eventPlayers=initEventPlayers({db,state,load,notify:msg,dialogs,getEvent:()=>eventWorkspace?.getEvent(),playerName:findPlayer,escapeHTML:esc});
 eventWorkspace=initEventWorkspace({state,escapeHTML:esc,onEventChange:()=>load()});
+// Dashboard shortcuts must switch workspace sections, not scroll to hidden panels.
+for(const [buttonId,target] of [['tcCourts','courts'],['tcRanked','ranked'],['tcPlayers','checkin']]){
+ const el=$(buttonId);if(el)el.onclick=()=>eventWorkspace?.openTab?.(target);
+}
 midnightArena=initMidnightArena({state,getEvent:eventWorkspace.getEvent});
 eventQueue=initEventQueue({db,state,load,notify:msg,escapeHTML:esc,playerName:findPlayer,getEvent:eventWorkspace.getEvent,dialogs});
 gcImport=initGCImport({db,state,load,notify:msg,dialogs,getEvent:eventWorkspace.getEvent,escapeHTML:esc});
