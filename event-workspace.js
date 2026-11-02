@@ -1,6 +1,6 @@
 export function initEventWorkspace({state,escapeHTML,onEventChange=()=>{}}){
 const $=id=>document.getElementById(id),admin=$('adminPanel'),home=$('home');
-let selected='',tab='overview',publicTab='courts',createMode=false,menuOpen=false;
+let selected='',tab='overview',publicTab='courts',createMode=false,menuOpen=false,justCreated=null;
 const cats=[['overview','Control Center'],['settings','Event Settings'],['players','Player Directory'],['checkin','Check-in / Out'],['courts','Live Courts'],['queue','Next Court Queue'],['results','Match Results'],['ranked','Rankings'],['finance','Accounting']];
 const groups=[['EVENT MANAGEMENT',['overview','settings']],['PLAYER MANAGEMENT',['players','checkin']],['GAME OPERATIONS',['courts','queue','results']],['COMPETITION',['ranked']],['FINANCE',['finance']]];
 const descriptions={overview:'Overview, status and session controls',settings:'Edit event, archive and restore',players:'Register, import and edit players',checkin:'Attendance and checkout',courts:'Active matches and scores',queue:'Organize the next three games',results:'Completed matches and corrections',ranked:'Ranked mode and standings',finance:'Event payments and balances'};
@@ -32,6 +32,24 @@ const playerCard=findCard('pname'),setupCard=findCard('sname');
 move(playerCard,'players');
 if(stage5){move(stage5,'players');for(const id of ['stage5session','stage5checksearch','stage5checklist']){const el=$(id);if(el)el.hidden=true}let h=[...stage5.querySelectorAll('h3')].find(e=>e.textContent.includes('Check-in'));if(h)h.hidden=true}
 if(setupCard){const newCard=document.createElement('div');newCard.className='card';newCard.id='ewCreateCard';newCard.append(setupCard);chooser.append(newCard)}
+const success=document.createElement('div');
+success.id='ewCreationSuccess';success.className='card';success.hidden=true;success.setAttribute('role','status');
+success.innerHTML='<div class="ew-created-tag">✓ EVENT CREATED</div><h2 id="ewCreatedTitle"></h2><p class="hint">Your event has been saved. Choose what to do next.</p><div class="ew-created-actions"><button id="ewCreatedManage">Manage Event</button><button class="secondary" id="ewCreatedCopy">Copy Group Chat Details</button><button class="secondary" id="ewCreatedBack">Back to Events</button></div><p id="ewCopyResult" class="hint small" aria-live="polite"></p>';
+chooser.append(success);
+const details=e=>{
+const date=e.session_date?new Date(e.session_date+'T12:00:00').toLocaleDateString('en-PH',{weekday:'long',month:'long',day:'numeric',year:'numeric'}):'To be announced';
+const modes={auto_balance:'Auto Balance',win_loss:'Win/Loss',challenge_court:'Challenge Court',winners_split:"Winner's Split",ranked_4:'Ranked · 4 Games'};
+return ['🏓 PICKLEBALL OPEN PLAY','',e.title,'📅 Date: '+date,'📍 Venue: '+(e.location||'To be announced'),'🏟 Courts: '+e.courts,'🎯 Format: '+(modes[e.mode]||e.mode),'💰 Fee: '+(Number(e.fee)?'₱'+Number(e.fee).toLocaleString('en-PH'):'Free'),'','See you on the court!'].join('\n');
+};
+$('ewCreatedManage').onclick=()=>{if(justCreated)choose(justCreated.id,true)};
+$('ewCreatedCopy').onclick=async()=>{
+ if(!justCreated)return;
+ const value=details(justCreated);
+ try{await navigator.clipboard.writeText(value);$('ewCopyResult').textContent='Event details copied — ready to paste in your group chat.'}
+ catch(e){const box=document.createElement('textarea');box.value=value;box.style.cssText='width:100%;min-height:210px;margin-top:12px';success.append(box);box.focus();box.select();$('ewCopyResult').textContent='Copy the selected details below for your group chat.'}
+};
+$('ewCreatedBack').onclick=()=>{justCreated=null;selected='';createMode=false;render()};
+function eventCreated(event){justCreated=event;selected='';createMode=false;render();window.scrollTo({top:0,behavior:'smooth'})}
 const correction=findCard('cfCorrectMatch');move(correction,'results');
 // Later-created extensions are moved into their logical group during refresh.
 function arrangeExtensions(){const importer=$('gcImportPanel');if(importer&&importer.parentElement!==panes.players)panes.players.append(importer)}
@@ -56,6 +74,11 @@ body.ew-public-selected #ewPublicHeader{display:block}
 #ewAdminChooser[hidden],#ewAdminHeader[hidden]{display:none}
 #ewAdminPanes .card{margin-bottom:12px}
 #ewCreateCard{margin-top:14px}
+#ewCreationSuccess{padding:25px;border:1px solid #b6a053;background:linear-gradient(145deg,#1e2a29,#101823);margin-top:14px}
+.ew-created-tag{font-weight:900;letter-spacing:.14em;font-size:12px;color:#f3ca63}
+#ewCreationSuccess h2{overflow-wrap:anywhere;margin:10px 0}
+.ew-created-actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:16px}
+.ew-created-actions button{flex:1 1 160px}
 #ewAdminResults .rank-row{gap:10px}
 #ewAdminPanes .card>.grid{max-width:100%}
 .ew-menu-backdrop{position:fixed;inset:0;z-index:99;background:#000a;border:0;border-radius:0;padding:0;cursor:default;backdrop-filter:blur(3px)}
@@ -86,7 +109,7 @@ body.ew-menu-open .ew-menu-backdrop{z-index:99}
 body.ew-public-selected #ewPublicNav{display:block}
 @media(max-width:780px){#ewAdminHeader{position:static;margin-top:7px;padding:13px}#ewPublicNav .ew-nav{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}#ewPublicNav button{padding:9px 3px;font-size:12px}.ew-drawer{width:min(360px,100vw);padding:19px 14px}}
 `;document.head.append(styles);
-function choose(id,isAdmin){if(!state.sessions.some(x=>x.id===id))return;closeMenu();selected=id;tab='overview';publicTab='courts';createMode=false;render();onEventChange();if(!isAdmin)location.hash='#/sessions'}
+function choose(id,isAdmin){if(!state.sessions.some(x=>x.id===id))return;closeMenu();justCreated=null;selected=id;tab='overview';publicTab='courts';createMode=false;render();onEventChange();if(!isAdmin)location.hash='#/sessions'}
 function list(includeArchived=false){const available=state.sessions.filter(s=>includeArchived||(!s.is_archived&&s.status!=='closed'));return available.map(s=>'<button class="ew-event-card" data-id="'+s.id+'"><strong>'+escapeHTML(s.title)+'</strong><span class="hint small">'+escapeHTML(s.session_date)+' · '+s.courts+' courts · '+escapeHTML(s.status)+'</span></button>').join('')||'<p class="hint">No events yet.</p>'}
 function navigatePublic(next){publicTab=next;const hash={courts:'sessions',players:'players',results:'history',rankings:'rankings'}[next]||'sessions';location.hash='#/'+hash;render()}
 function render(){
@@ -97,6 +120,8 @@ function render(){
  $('ewAdminCards').innerHTML=list(true);$('ewPublicCards').innerHTML=list();
  for(const [root,isAdmin] of [[$('ewAdminCards'),true],[$('ewPublicCards'),false]])root.querySelectorAll('[data-id]').forEach(btn=>btn.onclick=()=>choose(btn.dataset.id,isAdmin));
  chooser.hidden=!!s&&!createMode;header.hidden=!s||createMode;
+ $('ewCreateCard').hidden=!createMode;success.hidden=!justCreated||createMode;
+ $('ewCreate').hidden=!!justCreated&&!createMode;
  $('ewAdminTitle').textContent=s?s.title+' · '+s.status:'Event control';$('ewCurrentSection').textContent=cats.find(x=>x[0]===tab)?.[1]||'';$('ewPublicName').textContent=s?.title||'';
  for(const [id,pane] of Object.entries(panes))pane.hidden=!s||id!==tab;
  const groupRoot=$('ewDrawerGroups');
@@ -112,11 +137,11 @@ function render(){
  for(const id of ['aSession','stage5session','rSession','tcSession','courtBoardSession','courtBoardPublicSession']){const input=$(id);if(s&&input&&[...input.options].some(o=>o.value===s.id)&&input.value!==s.id){input.value=s.id;if(id==='rSession')input.dispatchEvent(new Event('change'))}}
  if(s){const ms=state.matches.filter(m=>m.session_id===s.id&&m.status==='completed').sort((a,b)=>new Date(b.ended_at)-new Date(a.ended_at));historyBox.innerHTML=ms.map(m=>'<div class="rank-row"><span>Court '+m.court_number+' · '+new Date(m.ended_at).toLocaleString()+'</span><strong>'+m.score_a+' – '+m.score_b+'</strong></div>').join('')||'<p class="hint small">No finished games yet.</p>'}
 }
-$('ewChange').onclick=()=>{closeMenu();selected='';createMode=false;render();onEventChange()};
+$('ewChange').onclick=()=>{closeMenu();justCreated=null;selected='';createMode=false;render();onEventChange()};
 $('ewPublicBack').onclick=()=>{selected='';location.hash='#/home';render();onEventChange()};
-$('ewCreate').onclick=()=>{createMode=true;chooser.hidden=false;header.hidden=true;$('ewCreateCard').hidden=false};
+$('ewCreate').onclick=()=>{justCreated=null;createMode=true;render()};
 $('ewCreateCard').hidden=true;
 $('ewDrawerEvent').onclick=()=>{closeMenu();$('ewChange').click()};
 $('ewDrawerLogout').onclick=()=>{closeMenu();window.logout?.()};
-return {refresh:render,getEvent:()=>selected,setEvent:id=>choose(id,true),currentTab:()=>tab,openTab:id=>{if(!panes[id])return;tab=id;closeMenu();render();window.scrollTo({top:0,behavior:'smooth'})},toggleMenu,closeMenu};
+return {refresh:render,eventCreated,getEvent:()=>selected,setEvent:id=>choose(id,true),currentTab:()=>tab,openTab:id=>{if(!panes[id])return;tab=id;closeMenu();render();window.scrollTo({top:0,behavior:'smooth'})},toggleMenu,closeMenu};
 }
